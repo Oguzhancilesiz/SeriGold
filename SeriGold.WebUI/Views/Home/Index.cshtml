@@ -1,0 +1,779 @@
+﻿@{
+    ViewData["Title"] = "Seri Döviz — Güvenilir Döviz & Sarrafiye";
+    ViewData["MetaDescription"] = "Seri Döviz ile canlı döviz kurları, altın ve sarrafiye fiyatları. Hakkımızda ve iletişim bilgileri tek sayfada.";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        /* Index'e özgü küçük ekler */
+        .badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .4rem .7rem;
+            border-radius: 999px;
+            border: 1px solid var(--sg-border);
+            background: var(--sg-surface-2)
+        }
+
+        .svc-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg,var(--sg-gold) 0%,var(--sg-gold-2) 100%);
+            color: #111
+        }
+
+        .promo-band {
+            position: relative;
+            overflow: hidden;
+            border-radius: 14px;
+            background: linear-gradient(135deg,rgba(240,194,75,.12),rgba(17,29,43,.45));
+            border: 1px solid var(--sg-border)
+        }
+
+            .promo-band .dot {
+                position: absolute;
+                border-radius: 999px;
+                filter: blur(18px);
+                opacity: .4;
+                pointer-events: none
+            }
+
+                .promo-band .dot.d1 {
+                    width: 180px;
+                    height: 180px;
+                    background: var(--sg-glow);
+                    left: -40px;
+                    top: -40px
+                }
+
+                .promo-band .dot.d2 {
+                    width: 220px;
+                    height: 220px;
+                    background: var(--sg-glow);
+                    right: -50px;
+                    bottom: -50px
+                }
+
+        .kpi .num {
+            font-size: 1.6rem;
+            font-weight: 700
+        }
+
+        .kpi small {
+            color: var(--sg-muted-strong)
+        }
+
+        .rate-vals strong {
+            font-variant-numeric: tabular-nums
+        }
+
+        .section-lead {
+            max-width: 720px
+        }
+    </style>
+}
+
+<!-- TICKER (sayfa başı) -->
+<section class="sg-anchor">
+    <div class="container-xxl">
+        <div class="ticker-wrap">
+            <div class="ticker">
+                <div class="ticker__track" id="idxTicker">
+                    <span class="ticker__item"><span class="spinner-border spinner-border-sm"></span> <span>Yükleniyor…</span></span>
+                    <span class="ticker__item"><span class="spinner-border spinner-border-sm"></span> <span>Kurlar çekiliyor…</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="home" class="sg-hero py-5 sg-anchor">
+    <div class="container-xxl">
+        <div class="row align-items-center g-4">
+            <div class="col-12 col-lg-7">
+                <h1 class="display-6 fw-semibold mb-3">
+                    <span class="gold-sheen">Seri Döviz</span> ile güvenilir kurlar ve şeffaf fiyatlar
+                </h1>
+                <p class="lead text-muted mb-3 section-lead">
+                    Canlı piyasaları takip edin, altın ve sarrafiye fiyatlarını karşılaştırın, tek noktadan hızlı iletişim kurun.
+                </p>
+
+                <div class="badge-row mb-4">
+                    <span class="chip"><i class="bi bi-activity"></i><b>Gerçek Zamanlı</b></span>
+                    <span class="chip"><i class="bi bi-shield-check"></i><b>Önce Güven</b></span>
+                    <span class="chip"><i class="bi bi-cpu"></i><b>Modern Altyapı</b></span>
+                    <span class="chip"><i class="bi bi-graph-up-arrow"></i><b>Şeffaf Fiyat</b></span>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <a asp-controller="Home" asp-action="Doviz" class="btn btn-gold-outline btn-lg" data-ripple>
+                        Canlı Kurları Gör
+                    </a>
+                    <a href="#contact" class="btn btn-secondary btn-lg" data-ripple>
+                        İletişime Geç
+                    </a>
+                </div>
+            </div>
+
+            <!-- Öne çıkan pariteler (canlı & tıklanabilir) -->
+            <div class="col-12 col-lg-5">
+                <div class="sg-card p-3 gold-border reveal tilt" data-glow>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="h5 m-0">Öne Çıkan Pariteler</div>
+                        <a asp-controller="Home" asp-action="Doviz" class="small text-gold text-decoration-none">Tümü</a>
+                    </div>
+                    <div class="rates-grid mt-2">
+                        <div class="sg-card rate-card position-relative reveal tilt" id="card-USDTRY" data-glow>
+                            <div class="rate-code">USD/TRY</div>
+                            <div class="rate-vals">
+                                <div><span>Alış </span><strong id="USDTRY-bid">—</strong></div>
+                                <div><span>Satış </span><strong id="USDTRY-ask">—</strong></div>
+                            </div>
+                            <div class="delta-badge"><i id="USDTRY-dir" class="bi bi-dash-lg"></i> <span id="USDTRY-ch">—</span>%</div>
+                            <a asp-controller="Home" asp-action="Doviz" class="stretched-link" aria-label="USD/TRY kurları"></a>
+                        </div>
+                        <div class="sg-card rate-card position-relative reveal tilt" id="card-EURTRY" data-glow>
+                            <div class="rate-code">EUR/TRY</div>
+                            <div class="rate-vals">
+                                <div><span>Alış </span><strong id="EURTRY-bid">—</strong></div>
+                                <div><span>Satış </span><strong id="EURTRY-ask">—</strong></div>
+                            </div>
+                            <div class="delta-badge"><i id="EURTRY-dir" class="bi bi-dash-lg"></i> <span id="EURTRY-ch">—</span>%</div>
+                            <a asp-controller="Home" asp-action="Doviz" class="stretched-link" aria-label="EUR/TRY kurları"></a>
+                        </div>
+                        <div class="sg-card rate-card position-relative reveal tilt" id="card-ALTINGRAM" data-glow>
+                            <div class="rate-code">ALTIN/GRAM</div>
+                            <div class="rate-vals">
+                                <div><span>Alış </span><strong id="ALTINGRAM-bid">—</strong></div>
+                                <div><span>Satış </span><strong id="ALTINGRAM-ask">—</strong></div>
+                            </div>
+                            <div class="delta-badge"><i id="ALTINGRAM-dir" class="bi bi-dash-lg"></i> <span id="ALTINGRAM-ch">—</span>%</div>
+                            <a asp-controller="Home" asp-action="Doviz" class="stretched-link" aria-label="Altın/Gram kurları"></a>
+                        </div>
+                        <div class="sg-card rate-card position-relative reveal tilt" id="card-ONS" data-glow>
+                            <div class="rate-code">ONS</div>
+                            <div class="rate-vals">
+                                <div><span>Alış </span><strong id="ONS-bid">—</strong></div>
+                                <div><span>Satış </span><strong id="ONS-ask">—</strong></div>
+                            </div>
+                            <div class="delta-badge"><i id="ONS-dir" class="bi bi-dash-lg"></i> <span id="ONS-ch">—</span>%</div>
+                            <a asp-controller="Home" asp-action="Doviz" class="stretched-link" aria-label="Ons altın kurları"></a>
+                        </div>
+                    </div>
+                    <div class="small text-subtle mt-2">Detaylı ve canlı tablo için “Kurlar” sayfasına geçiş yapın.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PROMO BAND -->
+<section class="py-4">
+    <div class="container-xxl">
+        <div class="promo-band p-4 p-lg-5 sg-card reveal tilt" data-glow>
+            <span class="dot d1"></span><span class="dot d2"></span>
+            <div class="row g-4 align-items-center">
+                <div class="col-12 col-lg-8">
+                    <h3 class="mb-2">2020’den bugüne, 2025’te döviz alım–satım ile daha kapsamlı hizmet.</h3>
+                    <p class="text-muted mb-0 section-lead">
+                        Kuyumculukta yüzyıllardır süren <em>“önce güven”</em> kültürünü; şeffaflık, teknoloji ve
+                        güleryüzlü hizmetle birleştiriyoruz. Canlı veri altyapımız ile fiyatları anlık izleyin,
+                        sorularınızı anında yanıtlayalım.
+                    </p>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="row g-3 text-center kpi">
+                        <div class="col-4">
+                            <div class="num">5+ yıl</div><small>Deneyim</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="num">24/7</div><small>Canlı Veri</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="num">Tek Nokta</div><small>Altın & Döviz</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HİZMETLER -->
+<section id="services" class="py-5 sg-anchor">
+    <div class="container-xxl">
+        <div class="text-center mb-4">
+            <h2 class="mb-2">Hizmetlerimiz</h2>
+            <p class="text-muted section-lead mx-auto">Sarrafiye, altın ve çoklu döviz ürünlerinde şeffaf ve hızlı işlem deneyimi.</p>
+        </div>
+        <div class="row g-3">
+            <div class="col-12 col-lg-4">
+                <div class="sg-card p-3 h-100 reveal tilt" data-glow>
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <span class="svc-icon"><i class="bi bi-cash-coin"></i></span>
+                        <h5 class="m-0">Döviz Alım–Satım</h5>
+                    </div>
+                    <p class="text-muted mb-3">USD, EUR, GBP ve daha fazlasında rekabetçi kurlar, canlı takip ve hızlı işlem.</p>
+                    <ul class="text-muted small mb-0">
+                        <li>Anlık fiyat ekranı</li>
+                        <li>Şubede hızlı işlem akışı</li>
+                        <li>Şeffaf spread</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="sg-card p-3 h-100 reveal tilt" data-glow>
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <span class="svc-icon"><i class="bi bi-gem"></i></span>
+                        <h5 class="m-0">Sarrafiye & Altın</h5>
+                    </div>
+                    <p class="text-muted mb-3">Çeyrek, yarım, tam, Ata ve gremse ürünlerinde güven ve istikrar.</p>
+                    <ul class="text-muted small mb-0">
+                        <li>Yeni / Eski ürün fiyatları</li>
+                        <li>Gram, ons, kg alternatifleri</li>
+                        <li>Güncel alım–satım tabloları</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="sg-card p-3 h-100 reveal tilt" data-glow>
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <span class="svc-icon"><i class="bi bi-clipboard-check"></i></span>
+                        <h5 class="m-0">Kurumsal Çözümler</h5>
+                    </div>
+                    <p class="text-muted mb-3">Toptancı ve mağazalara özel fiyatlandırma, hızlı teklif ve güvenilir tedarik.</p>
+                    <ul class="text-muted small mb-0">
+                        <li>Özel spread ve hacim desteği</li>
+                        <li>Hızlı teyit – net süreç</li>
+                        <li>Raporlama ve takip</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- NEDEN BİZ -->
+<section id="why" class="py-5 sg-anchor">
+    <div class="container-xxl">
+        <div class="text-center mb-4">
+            <h2 class="mb-2">Neden Seri Döviz?</h2>
+        </div>
+        <div class="row g-3">
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="sg-card p-3 h-100 reveal tilt">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-shield-lock text-gold fs-4"></i>
+                        <div><div class="fw-semibold">Şeffaflık</div><div class="text-muted small">Açık fiyat, açık iletişim.</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="sg-card p-3 h-100 reveal tilt">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-lightning-charge text-gold fs-4"></i>
+                        <div><div class="fw-semibold">Hızlı İşlem</div><div class="text-muted small">Dakikalar içinde sonuç.</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="sg-card p-3 h-100 reveal tilt">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-cpu text-gold fs-4"></i>
+                        <div><div class="fw-semibold">Canlı Veri</div><div class="text-muted small">Anlık güncellenen kurlar.</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="sg-card p-3 h-100 reveal tilt">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-people text-gold fs-4"></i>
+                        <div><div class="fw-semibold">Güler Yüz</div><div class="text-muted small">Deneyimli ekip, çözüm odaklı yaklaşım.</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HAKKIMIZDA -->
+<section id="about" class="py-5 sg-anchor">
+    <div class="container-xxl">
+        <div class="row g-4 align-items-start">
+            <div class="col-12 col-lg-7">
+                <h2 class="mb-4 text-gold">HAKKIMIZDA</h2>
+                <p class="text-muted mb-3">
+                    <strong>Seri Döviz</strong>, kuyumculuk sektörünün yüzyıllardır taşıdığı
+                    <em>“önce güven”</em> ilkesini temel alır. Kaliteli ve müşteri odaklı hizmet anlayışını,
+                    yenilikçi teknolojilerle birleştirerek; eski ticaretin samimiyetini, sektördeki
+                    yıllara dayanan bilgi ve deneyimle harmanlarız.
+                </p>
+                <div class="mb-4">
+                    <div class="border-start ps-3 ms-1">
+                        <div class="mb-3">
+                            <div class="small text-muted fw-semibold">2020</div>
+                            <p class="mb-1 text-muted">Güven odaklı yaklaşımla kuyumculuk ve sarrafiyede istikrarlı operasyonumuzu kurduk.</p>
+                        </div>
+                        <div class="mb-0">
+                            <div class="small text-muted fw-semibold">2025</div>
+                            <p class="mb-0 text-muted">Portföyümüzü genişleterek <strong>her türlü döviz alım–satımı</strong> ile tek çatı altında daha kapsamlı hizmet sunmaya başladık.</p>
+                        </div>
+                    </div>
+                </div>
+                <ul class="text-muted small mb-0">
+                    <li>Güncel fiyatlara hızlı erişim</li>
+                    <li>Profesyonel, güleryüzlü ekip</li>
+                    <li>Şeffaf süreç ve açık bilgilendirme</li>
+                </ul>
+            </div>
+            <div class="col-12 col-lg-5">
+                <div class="text-center reveal tilt">
+                    <img src="~/logo.png" class="img-fluid" style="max-height: 460px" alt="Seri Döviz Logo" />
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SSS -->
+<section id="faq" class="py-5 sg-anchor">
+    <div class="container-xxl">
+        <div class="text-center mb-4">
+            <h2 class="mb-2">Sık Sorulan Sorular</h2>
+            <p class="text-muted section-lead mx-auto">Kafanıza takılanları hızlıca yanıtlayalım.</p>
+        </div>
+
+        <div class="accordion reveal tilt" id="faqAcc">
+            <!-- 1 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q1">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#a1" aria-expanded="true" aria-controls="a1">
+                        Kurlar ne sıklıkla güncelleniyor?
+                    </button>
+                </h2>
+                <div id="a1" class="accordion-collapse collapse show" aria-labelledby="q1" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Kurlar anlık olarak güncellenir; “Kurlar” sayfasındaki tablo ve ana sayfadaki öne çıkan kartlar otomatik tazelenir.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q2">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a2" aria-expanded="false" aria-controls="a2">
+                        Sarrafiye ürünlerinde yeni/eski ayrımı yapıyor musunuz?
+                    </button>
+                </h2>
+                <div id="a2" class="accordion-collapse collapse" aria-labelledby="q2" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Evet. Çeyrek, yarım, tam, Ata ve gremse için <strong>yeni/eski</strong> ürün fiyatlarını ayrı ayrı paylaşıyoruz.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q3">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a3" aria-expanded="false" aria-controls="a3">
+                        Kurumsal müşterilere özel teklif veriyor musunuz?
+                    </button>
+                </h2>
+                <div id="a3" class="accordion-collapse collapse" aria-labelledby="q3" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Hacim ve ihtiyaca göre <strong>özel spread</strong>, hızlı teyit ve raporlama desteği sunuyoruz.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q4">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a4" aria-expanded="false" aria-controls="a4">
+                        İletişime nasıl geçebilirim?
+                    </button>
+                </h2>
+                <div id="a4" class="accordion-collapse collapse" aria-labelledby="q4" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Aşağıdaki formu doldurabilir, haritadaki konumumuzdan ziyaret edebilir veya telefon/e-posta ile ulaşabilirsiniz.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q5">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a5" aria-expanded="false" aria-controls="a5">
+                        Fiyatlar yatırım tavsiyesi midir?
+                    </button>
+                </h2>
+                <div id="a5" class="accordion-collapse collapse" aria-labelledby="q5" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Hayır. Paylaşılan fiyatlar bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q6">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a6" aria-expanded="false" aria-controls="a6">
+                        Spread nasıl hesaplanıyor?
+                    </button>
+                </h2>
+                <div id="a6" class="accordion-collapse collapse" aria-labelledby="q6" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Spread, alış ve satış fiyatı arasındaki farktır. Ürün türüne, piyasa likiditesine ve işlem hacmine göre değişebilir.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q7">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a7" aria-expanded="false" aria-controls="a7">
+                        Veri gecikmesi oluyor mu?
+                    </button>
+                </h2>
+                <div id="a7" class="accordion-collapse collapse" aria-labelledby="q7" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Altyapımız canlıdır. Nadir durumlarda hatlar/sağlayıcılar nedeniyle kısa süreli gecikmeler görülebilir.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q8">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a8" aria-expanded="false" aria-controls="a8">
+                        Çalışma saatleriniz nedir?
+                    </button>
+                </h2>
+                <div id="a8" class="accordion-collapse collapse" aria-labelledby="q8" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Hafta içi ve Cumartesi mesai saatlerimizde hizmet veriyoruz. Resmî tatillerde değişiklik olabilir.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q9">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a9" aria-expanded="false" aria-controls="a9">
+                        Minimum/azami işlem tutarı var mı?
+                    </button>
+                </h2>
+                <div id="a9" class="accordion-collapse collapse" aria-labelledby="q9" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Ürüne ve güncel piyasa koşullarına göre minimum/azami tutarlar değişebilir. Detay için lütfen bizimle iletişime geçin.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10 -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="q10">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a10" aria-expanded="false" aria-controls="a10">
+                        Kur sabitleme veya rezervasyon yapabilir miyim?
+                    </button>
+                </h2>
+                <div id="a10" class="accordion-collapse collapse" aria-labelledby="q10" data-bs-parent="#faqAcc">
+                    <div class="accordion-body text-muted">
+                        Hızlı teyit ile kısa süreli kur sabitleme/rezervasyon seçenekleri sunabiliyoruz. Koşullar için bizi arayın.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- CTA -->
+<section class="py-5 sg-anchor" id="cta">
+    <div class="container-xxl">
+        <div class="sg-card p-4 p-lg-5 d-flex flex-column flex-lg-row align-items-center justify-content-between gap-3 reveal tilt" data-glow>
+            <div>
+                <h3 class="mb-1">Döviz alım–satım veya sarrafiye için hızlı teklif alın.</h3>
+                <div class="text-muted">Şeffaf fiyat, anlık teyit, güleryüzlü hizmet.</div>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-controller="Home" asp-action="Doviz" class="btn btn-gold-outline btn-lg" data-ripple><i class="bi bi-graph-up-arrow me-1"></i> Canlı Kurlar</a>
+                <a href="#contact" class="btn btn-secondary btn-lg" data-ripple><i class="bi bi-envelope me-1"></i> İletişime Geç</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- İLETİŞİM -->
+<section id="contact" class="py-5 sg-anchor">
+    <div class="container-xxl">
+        <h4 class="text-center mb-4 fw-semibold">İLETİŞİM BİLGİSİ</h4>
+        <div class="row g-4">
+            <div class="col-12 col-lg-3">
+                <div class="d-flex flex-column align-items-center text-center gap-5 reveal">
+                    <div>
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle border" style="width:64px;height:64px;">
+                            <i class="bi bi-telephone text-gold fs-4"></i>
+                        </div>
+                        <div class="small mt-3">
+                            <a href="tel:+905342903605" class="link-underline-opacity-0" aria-label="Telefonu ara">
+                                0534 290 36 05
+                            </a>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle border" style="width:64px;height:64px;">
+                            <i class="bi bi-geo-alt text-gold fs-4"></i>
+                        </div>
+                        <div class="small mt-3">
+                            <a href="https://www.google.com/maps/search/?api=1&query=19%20May%C4%B1s%20Mahallesi%20Halaskargazi%20Caddesi%20No%3A%20212%20B%2C%20%C5%9Ei%C5%9Fli%2F%C4%B0stanbul"
+                               target="_blank" rel="noopener noreferrer"
+                               class="link-underline-opacity-0"
+                               aria-label="Haritada aç">
+                                19 Mayıs Mah., Halaskargazi Cd. No:212 B<br />Şişli / İstanbul
+                            </a>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle border" style="width:64px;height:64px;">
+                            <i class="bi bi-envelope text-gold fs-4"></i>
+                        </div>
+                        <div class="small mt-3">
+                            <a href="mailto:info@seridoviz.com" class="link-underline-opacity-0">info@seridoviz.com</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-5">
+                <div class="sg-card p-3 h-100 reveal">
+                    <h6 class="mb-2">Mesaj Bırakın</h6>
+                    <p class="small text-muted mb-3">İstek, öneri ve talepleriniz için bize mesaj bırakabilirsiniz.</p>
+                    <form method="post" novalidate class="sg-input">
+                        <div class="row g-2">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small text-muted">Ad</label>
+                                <input type="text" class="form-control" placeholder="Ad" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small text-muted">Soyad</label>
+                                <input type="text" class="form-control" placeholder="Soyad" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small text-muted">E-Posta</label>
+                                <input type="email" class="form-control" placeholder="E-Posta" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small text-muted">Mesajınız</label>
+                                <textarea class="form-control" rows="6" placeholder="Mesajınız"></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-gold-outline w-100">Gönder</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-4">
+                <div class="sg-card p-3 h-100 reveal">
+                    <h6 class="mb-3">Konum Bilgisi</h6>
+                    <div class="ratio ratio-4x3 mb-3">
+                        <iframe src="https://www.google.com/maps?q=19%20May%C4%B1s%20Mahallesi%20Halaskargazi%20Caddesi%20No%3A%20212%20B%2C%20%C5%9Ei%C5%9Fli%2F%C4%B0stanbul&z=16&output=embed"
+                                width="600" height="450" style="border:0;" allowfullscreen loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+@section Scripts {
+    <script>
+                const loaderMsgs = [
+          'Güncel kurlar yükleniyor…',
+          'Veri alınıyor…',
+          'Piyasa akışı hazırlanıyor…',
+          'Anlık fiyatlar geliyor…',
+          'Bağlantı kuruluyor…',
+          'Canlı yayın başlıyor…'
+        ];
+        let loadIdx = 0, idxTickerTimer = null;
+
+        function startTickerRotator(){
+          const track = document.getElementById('idxTicker');
+          if(!track || idxTickerTimer) return;
+          const render = () => {
+            const m1 = loaderMsgs[loadIdx % loaderMsgs.length];
+            const m2 = loaderMsgs[(loadIdx+1) % loaderMsgs.length];
+            track.innerHTML =
+              `<span class="ticker__item"><span class="spinner-border spinner-border-sm"></span> <span>${m1}</span></span>`+
+              `<span class="ticker__item"><span class="spinner-border spinner-border-sm"></span> <span>${m2}</span></span>`;
+            loadIdx = (loadIdx+1) % loaderMsgs.length;
+          };
+          render();
+          idxTickerTimer = setInterval(render, 1400);
+        }
+        function stopTickerRotator(){
+          if(idxTickerTimer){ clearInterval(idxTickerTimer); idxTickerTimer=null; }
+        }
+
+        (function(){
+          const API = { latest: '/api/rates/latest' };
+          const EPS=1e-9;
+          function truncTo(v,d){ const f=Math.pow(10,d); return Math.trunc((+v)*f)/f; }
+          function dp(sym){
+            if(!sym) return 6;
+            if(sym==='ONS' || sym==='XAU/USD') return 1;
+            if(/GRAM|KG\(|GREMSE|ÇEYREK|YARIM|TAM|ATA/.test(sym)) return 2;
+            if(/\/JPY$|\/HUF$|\/KRW$|\/IDR$/.test(sym)) return 3;
+            if(/\/TRY$/.test(sym)) return 4;
+            return 6;
+          }
+          function fmt(v,sym){
+            if(v==null) return '—';
+            const d=dp(sym), t=truncTo(v,d);
+            return t.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+          }
+          function pcent(v){
+            const n=Number(v); if(!isFinite(n)) return '0,00';
+            const abs=Math.abs(n), d=abs<0.01?3:2;
+            const t=truncTo(n,d);
+            const out=t.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+            return out==='-0,00'?'0,00':out;
+          }
+          const prev = new Map(); // flash için
+          const baseKey = 'rates.base.'+(new Intl.DateTimeFormat('tr-TR',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).split('.').reverse().join('-'));
+          let baseMap = new Map(Object.entries(JSON.parse(localStorage.getItem(baseKey)||'{}')).map(([k,v])=>[k,+v]));
+
+          // DOM hedefleri
+          const targets = [
+            { sym:'USD/TRY', bid: 'USDTRY-bid', ask:'USDTRY-ask', card:'card-USDTRY', ch:'USDTRY-ch', dir:'USDTRY-dir', as:'USD/TRY' },
+            { sym:'EUR/TRY', bid: 'EURTRY-bid', ask:'EURTRY-ask', card:'card-EURTRY', ch:'EURTRY-ch', dir:'EURTRY-dir', as:'EUR/TRY' },
+            { sym:'ALTIN/GRAM', bid: 'ALTINGRAM-bid', ask:'ALTINGRAM-ask', card:'card-ALTINGRAM', ch:'ALTINGRAM-ch', dir:'ALTINGRAM-dir', as:'ALTIN/GRAM' },
+            { sym:'XAU/USD', as:'ONS', bid: 'ONS-bid', ask:'ONS-ask', card:'card-ONS', ch:'ONS-ch', dir:'ONS-dir' }
+          ];
+
+          function mid(bid,ask){
+            if(bid==null && ask==null) return null;
+            if(bid==null) return +ask;
+            if(ask==null) return +bid;
+            return ((+bid)+(+ask))/2;
+          }
+
+          function apply(list){
+            const map = new Map(list.filter(x=>x.symbol).map(x => [x.symbol, x]));
+
+            // Ticker
+            const top = ['ALTIN/GRAM','XAU/USD','USD/KG(ALTIN)','EUR/KG(ALTIN)','GÜMÜŞ/GRAM','USD/TRY','EUR/TRY','EUR/USD','USD/JPY'];
+            const rows = [];
+            for(const k of top){
+              const r = map.get(k);
+              if(!r) continue;
+              const symLabel = (k==='XAU/USD')?'ONS':k;
+              const b=r.bid,a=r.ask;
+              const m=mid(b,a);
+              // % change
+              let base = baseMap.get(k);
+              if(base==null && m!=null && m>0){ baseMap.set(k,m); localStorage.setItem(baseKey, JSON.stringify(Object.fromEntries(baseMap))); base=m; }
+              let ch = 0;
+              if(base!=null && m!=null && base) ch = ((m-base)/base)*100;
+              rows.push({label:symLabel,value:(a??b),delta:ch});
+            }
+            if(rows.length){
+                stopTickerRotator();
+
+              const track = document.getElementById('idxTicker');
+              if(track){
+                const dbl = rows.concat(rows);
+                track.innerHTML = dbl.map(t=>(
+                  `<span class="ticker__item">
+                     <span class="lbl">${t.label}</span>
+                     <span class="val price ${t.delta>=0?'rise':'drop'}">${fmt(t.value, t.label)}</span>
+                     <i class="${t.delta>=0?'bi bi-caret-up-fill rise':'bi bi-caret-down-fill drop'}"></i>
+                     <small class="${t.delta>=0?'rise':'drop'}">%${pcent(t.delta)}</small>
+                   </span>`
+                )).join('');
+              }
+              try{ window.PageLoader && PageLoader.hide(); }catch(_){}
+            }
+
+            // Kartlar
+            targets.forEach(t=>{
+              const r = map.get(t.sym);
+              const symLabel = t.as || t.sym;
+              const bidEl = document.getElementById(t.bid);
+              const askEl = document.getElementById(t.ask);
+              const card  = document.getElementById(t.card);
+              const chEl  = document.getElementById(t.ch);
+              const dirEl = document.getElementById(t.dir);
+              if(!bidEl || !askEl) return;
+
+              const b = r ? r.bid : null;
+              const a = r ? r.ask : null;
+
+              // soft flash (orta değer değiştiyse)
+              if(card && r){
+                const m = mid(b,a);
+                const pv = prev.get(t.sym);
+                if(pv!=null && m!=null && Math.abs(m - pv) > EPS){
+                  card.classList.remove('flash-up'); void card.offsetWidth; card.classList.add('flash-up');
+                }
+                if(m!=null) prev.set(t.sym, m);
+
+                // % change
+                let base = baseMap.get(t.sym);
+                if(base==null && m!=null && m>0){ baseMap.set(t.sym,m); localStorage.setItem(baseKey, JSON.stringify(Object.fromEntries(baseMap))); base=m; }
+                let ch = 0;
+                if(base!=null && m!=null && base) ch = ((m-base)/base)*100;
+                if(chEl) chEl.textContent = pcent(ch);
+                if(dirEl){
+                  dirEl.className = ch>=0 ? 'bi bi-caret-up-fill rise' : 'bi bi-caret-down-fill drop';
+                }
+              }
+
+              bidEl.textContent = fmt(b, symLabel);
+              askEl.textContent = fmt(a, symLabel);
+            });
+          }
+
+          function norm(list){
+            return (list||[]).map(x=>({
+              symbol: x.symbol||x.Symbol||x.code||x.Code,
+              bid:    (x.bid??x.Bid??x.buy??x.Buy),
+              ask:    (x.ask??x.Ask??x.sell??x.Sell)
+            }));
+          }
+
+          function pull(){
+            fetch(API.latest, { cache: 'no-store' })
+              .then(r=>{ if(!r.ok) throw new Error('http'); return r.json(); })
+              .then(j => apply(norm(j)))
+              .catch(()=>{ /* sessizce */ });
+          }
+
+          try{ window.PageLoader && PageLoader.show(); }catch(_){}
+          pull();
+                  try{ window.PageLoader && PageLoader.setMessages(loaderMsgs); }catch(_){}
+        startTickerRotator();
+          const tmr = setInterval(pull, 2000);
+          document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) pull(); });
+        })();
+    </script>
+}

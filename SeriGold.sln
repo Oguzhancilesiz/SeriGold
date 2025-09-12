@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35818.85 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeriGold.Core", "SeriGold.Core\SeriGold.Core.csproj", "{474F862B-D304-46E8-8896-40FE61BBC021}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeriGold.DAL", "SeriGold.DAL\SeriGold.DAL.csproj", "{E1177DDB-5626-44FD-A284-A52131C78663}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeriGold.DTO", "SeriGold.DTO\SeriGold.DTO.csproj", "{5D88C113-9CDC-4E7A-AEDC-237E1DC2C30E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeriGold.Entity", "SeriGold.Entity\SeriGold.Entity.csproj", "{D5A0D2CE-272F-47B9-8DFB-40E72BC51594}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeriGold.Mapping", "SeriGold.Mapping\SeriGold.Mapping.csproj", "{A5322BAD-1435-4AB0-A267-1BF247AC2649}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeriGold.Services", "SeriGold.Services\SeriGold.Services.csproj", "{2F77BBF1-5CA5-4CA1-B8EF-FA23175027E5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeriGold.WebUI", "SeriGold.WebUI\SeriGold.WebUI.csproj", "{B76C8E8E-90D5-421F-ABD5-D2BC4882C7C0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{474F862B-D304-46E8-8896-40FE61BBC021}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{474F862B-D304-46E8-8896-40FE61BBC021}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{474F862B-D304-46E8-8896-40FE61BBC021}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{474F862B-D304-46E8-8896-40FE61BBC021}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1177DDB-5626-44FD-A284-A52131C78663}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1177DDB-5626-44FD-A284-A52131C78663}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1177DDB-5626-44FD-A284-A52131C78663}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1177DDB-5626-44FD-A284-A52131C78663}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D88C113-9CDC-4E7A-AEDC-237E1DC2C30E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D88C113-9CDC-4E7A-AEDC-237E1DC2C30E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D88C113-9CDC-4E7A-AEDC-237E1DC2C30E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D88C113-9CDC-4E7A-AEDC-237E1DC2C30E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5A0D2CE-272F-47B9-8DFB-40E72BC51594}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5A0D2CE-272F-47B9-8DFB-40E72BC51594}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5A0D2CE-272F-47B9-8DFB-40E72BC51594}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5A0D2CE-272F-47B9-8DFB-40E72BC51594}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5322BAD-1435-4AB0-A267-1BF247AC2649}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5322BAD-1435-4AB0-A267-1BF247AC2649}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5322BAD-1435-4AB0-A267-1BF247AC2649}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5322BAD-1435-4AB0-A267-1BF247AC2649}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F77BBF1-5CA5-4CA1-B8EF-FA23175027E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F77BBF1-5CA5-4CA1-B8EF-FA23175027E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F77BBF1-5CA5-4CA1-B8EF-FA23175027E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F77BBF1-5CA5-4CA1-B8EF-FA23175027E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B76C8E8E-90D5-421F-ABD5-D2BC4882C7C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B76C8E8E-90D5-421F-ABD5-D2BC4882C7C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B76C8E8E-90D5-421F-ABD5-D2BC4882C7C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B76C8E8E-90D5-421F-ABD5-D2BC4882C7C0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DD60E24F-0778-4E82-9781-63556B9D6240}
+	EndGlobalSection
+EndGlobal

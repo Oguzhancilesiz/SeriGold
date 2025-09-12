@@ -1,0 +1,399 @@
+﻿@{
+    Layout = null;
+    var title = (ViewData["Title"] as string) ?? "Seri Döviz";
+    var desc = (ViewData["MetaDescription"] as string) ?? "Seri Döviz — canlı kurlar, altın & sarrafiye fiyatları, güvenilir döviz bürosu deneyimi.";
+}
+<!doctype html>
+<html lang="tr" data-theme="seridoviz-dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+
+    <title>@title</title>
+    <meta name="description" content="@desc" />
+    <meta name="theme-color" content="#0b1621" />
+
+
+    <!-- Favicon kit -->
+    <link rel="icon" href="~/favicon/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="~/logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="~/logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="~/logo.png">
+    <link rel="manifest" href="~/favicon/site.webmanifest">
+    <link rel="mask-icon" href="~/logo.png" color="#d4af37">
+    <meta name="msapplication-TileColor" content="#0b1621">
+    <!-- Var olan theme-color meta’nı şu şekilde ID’li kullan: -->
+    <meta name="theme-color" id="themeColorMeta" content="#0b1621">
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="Seri Döviz" />
+    <meta property="og:title" content="@title" />
+    <meta property="og:description" content="@desc" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="tr_TR" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="@title" />
+    <meta name="twitter:description" content="@desc" />
+
+    <!-- Critical theme bootstrap (FOUT önleme) -->
+    <script>
+        try {
+          const k='seridoviz.theme';
+          const saved=localStorage.getItem(k);
+          const t=saved?saved:(matchMedia('(prefers-color-scheme: dark)').matches?'seridoviz-dark':'seridoviz-light');
+          document.documentElement.setAttribute('data-theme', t);
+        } catch(e){}
+    </script>
+
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="~/css/site.css" rel="stylesheet" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+    @RenderSection("HeadMeta", required: false)
+</head>
+<body class="sg-body">
+    <!-- Ambient uzay/ikon kayma efekti -->
+    <div class="sg-ambient" aria-hidden="true"></div>
+
+    <!-- Sayfa yükleyici -->
+    <div id="pageLoader" class="page-loader" role="status" aria-live="polite" aria-label="Yükleniyor" hidden>
+        <div class="box">
+            <span class="spinner-border spinner-border-sm" role="presentation"></span>
+            <strong id="pageLoaderText" aria-live="polite">Güncel kurlar yükleniyor…</strong>
+        </div>
+    </div>
+
+    <!-- Sabit üst menü -->
+    <header class="sg-navbar fixed-top">
+        <nav class="navbar navbar-expand-lg" aria-label="Ana menü">
+            <div class="container-xxl">
+                <a class="navbar-brand d-flex align-items-center gap-2" asp-controller="Home" asp-action="Index">
+                    <img src="~/logo.png" alt="Seri Döviz" height="80" />
+                </a>
+
+
+                <!-- MENÜ LİNKLERİ: sadece masaüstü -->
+                <div class="collapse navbar-collapse d-none d-lg-flex" id="mainNav">
+                    <ul class="navbar-nav ms-lg-4 me-auto sg-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">Ana Sayfa</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Index" asp-fragment="about">Hakkımızda</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Index" asp-fragment="contact">İletişim</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Doviz">Kurlar</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- SAĞ: tema + kurlar ikonu (mobilde de görünür) -->
+                <div class="d-flex align-items-center gap-2 ms-auto">
+                    <button id="themeBtn" class="btn btn-gold-outline btn-sm d-flex align-items-center gap-1" type="button" data-ripple>
+                        <i class="bi bi-moon-stars" id="themeIcon" aria-hidden="true"></i><span id="themeText">Koyu</span>
+                    </button>
+                    <a class="icon-btn" asp-controller="Home" asp-action="Doviz" title="Kurlar" data-bs-toggle="tooltip" data-bs-title="Canlı Kurlar" data-ripple>
+                        <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+
+    <!-- İçerik -->
+    <main class="sg-main mt-5">
+        <!-- Yasal Uyarı – İnce Bant -->
+        <div id="legalNoticeBar" class="notice-bar" role="alert" aria-live="polite">
+            <div class="container-xxl d-flex align-items-center gap-3 py-2">
+                <i class="bi bi-exclamation-octagon-fill flex-shrink-0"></i>
+                <span class="notice-text">
+                    Paylaşılan fiyatlar bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.
+                </span>
+                <button type="button" class="btn-close ms-auto" aria-label="Kapat"></button>
+            </div>
+        </div>
+
+        @RenderBody()
+    </main>
+    <nav class="sg-bottomnav d-lg-none" aria-label="Alt gezinti">
+        <a class="bn-item nav-link" asp-controller="Home" asp-action="Index" data-ripple>
+            <i class="bi bi-house"></i>
+            <span>Ana</span>
+        </a>
+
+        <a class="bn-item nav-link" asp-controller="Home" asp-action="Doviz" data-ripple>
+            <i class="bi bi-graph-up-arrow"></i>
+            <span>Kurlar</span>
+        </a>
+
+        <a class="bn-item nav-link" asp-controller="Home" asp-action="Index" asp-fragment="about" data-ripple>
+            <i class="bi bi-info-circle"></i>
+            <span>Hakkımızda</span>
+        </a>
+
+        <a class="bn-item nav-link" asp-controller="Home" asp-action="Index" asp-fragment="contact" data-ripple>
+            <i class="bi bi-telephone"></i>
+            <span>İletişim</span>
+        </a>
+    </nav>
+
+    <!-- Alt bölüm -->
+    <footer class="sg-footer mt-4">
+        <div class="container-xxl">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 py-3 mt-3 border-top sglib-border">
+                <div class="small text-muted text-center text-md-start">
+                    © @DateTime.Now.Year Seri Döviz • Tüm hakları saklıdır.
+                    <span class="d-none d-md-inline"> • </span><br class="d-md-none" />
+                    <span class="text-subtle">
+                        Created by
+                        <a href="https://www.linkedin.com/in/o%C4%9Fuzhan-%C3%A7ilesiz?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app" class="text-gold text-decoration-none" rel="noopener">Oğuzhan Çilesiz</a>
+                    </span>
+                </div>
+                <ul class="nav small">
+                    <li class="nav-item">
+                        <a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">
+                            Gizlilik Politikası
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#kvkkPolicyModal">
+                            KVKK
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#aydModal">
+                            Aydınlatma Metni
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#cookieModal">
+                            Çerez Kullanımı
+                        </a>
+                    </li>
+                </ul>
+
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scroll to top -->
+    <button id="toTop" class="to-top icon-btn" type="button" aria-label="Yukarı" data-ripple>
+        <i class="bi bi-chevron-up"></i>
+    </button>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @RenderSection("Scripts", required: false)
+
+    <!-- Gizlilik Politikası -->
+    <div class="modal fade modal-seri" id="privacyModal" tabindex="-1" aria-labelledby="privacyLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="privacyLabel" class="modal-title">Gizlilik Politikası</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Güncelleme:</strong> 12.09.2025</p>
+                    <p><strong>Seri Döviz</strong> olarak, web sitemizi ve dijital kanallarımızı kullanırken kişisel verilerinizin gizliliğini ve güvenliğini önemsiyoruz. Bu politika; hangi verileri işlediğimizi, hangi amaçlarla kullandığımızı ve haklarınızı açıklar.</p>
+
+                    <h6>1) Veri Sorumlusu</h6>
+                    <p>Seri Döviz (\"Şirket\") — İletişim: <a href="mailto:info@seridoviz.com">info@seridoviz.com</a></p>
+
+                    <h6>2) Toplanan Veriler</h6>
+                    <ul>
+                        <li><em>İletişim:</em> Ad, soyad, e-posta, telefon (form doldurursanız).</li>
+                        <li><em>Kullanım &amp; Teknik:</em> IP, tarayıcı bilgisi, cihaz/oturum verisi, sayfa etkileşimleri, çerez kimlikleri.</li>
+                        <li><em>İşlem Güvenliği:</em> günlük (log) kayıtları, hata kayıtları, güvenlik uyarıları.</li>
+                    </ul>
+
+                    <h6>3) Amaçlar</h6>
+                    <ul>
+                        <li>Siteyi çalıştırma, bakım ve güvenlik (performans, hata ayıklama, dolandırıcılık önleme).</li>
+                        <li>Talep ve başvurularınıza dönüş yapma, müşteri iletişimi.</li>
+                        <li>Hizmet iyileştirmeleri ve istatistiksel analiz (toplam/anonim ölçümler).</li>
+                        <li>Pazarlama iletileri sadece <strong>açık rızanız</strong> varsa.</li>
+                    </ul>
+
+                    <h6>4) Hukuki Sebepler (KVKK md.5)</h6>
+                    <ul>
+                        <li>Sözleşmenin kurulması/ifası (md.5/2-c),</li>
+                        <li>Hukuki yükümlülükler (md.5/2-ç),</li>
+                        <li>Hakkın tesisi, kullanılması veya korunması (md.5/2-e),</li>
+                        <li>Meşru menfaat (md.5/2-f),</li>
+                        <li>Pazarlama/analitik için <strong>açık rıza</strong> (md.5/1), gerektiğinde.</li>
+                    </ul>
+
+                    <h6>5) Saklama Süreleri</h6>
+                    <p>Mevzuatta öngörülen süreler saklı kalmak üzere; teknik loglar güvenlik ve denetim amaçlı makul sürelerle, iletişim kayıtları iş ilişkisinin gerektirdiği süre boyunca, analitik veriler ise anonimleştirilerek tutulur.</p>
+
+                    <h6>6) Aktarım</h6>
+                    <p>Altyapı/hosting, analitik, e-posta/iletişim hizmeti aldığımız tedarikçilere veriler aktarılabilir. Yurt dışına aktarım (örn. CDN, analitik sağlayıcı) söz konusu ise KVKK md.9 kapsamında gerekli korumalar sağlanır.</p>
+
+                    <h6>7) Çocukların Verileri</h6>
+                    <p>Hizmetlerimiz yetişkinler içindir; 18 yaş altından bilerek veri toplamıyoruz.</p>
+
+                    <h6>8) Haklarınız (KVKK md.11)</h6>
+                    <ul>
+                        <li>İşlenip işlenmediğini öğrenme,</li>
+                        <li>Bilgi talep etme,</li>
+                        <li>Amacına uygun kullanılıp kullanılmadığını öğrenme,</li>
+                        <li>Yurt içi/dışı aktarılan yerleri bilme,</li>
+                        <li>Eksik/yanlışsa düzeltilmesini isteme,</li>
+                        <li>KVKK ve ilgili kanunlara aykırı işlenmişse silinmesini/anonimleştirilmesini isteme,</li>
+                        <li>Otomatik işleme ile aleyhinize sonucun ortaya çıkmasına itiraz,</li>
+                        <li>Zarar halinde tazmin talep etme.</li>
+                    </ul>
+                    <p>Başvuru: <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a> • 30 gün içinde yanıtlanır.</p>
+
+                    <h6>9) Güvenlik</h6>
+                    <p>Uygun teknik ve idari tedbirler uygulanır (erişim kontrolü, şifreleme, iz kayıtları vb.).</p>
+
+                    <h6>10) Güncellemeler</h6>
+                    <p>Bu politika zaman zaman güncellenebilir. En güncel sürüm daima bu sayfada yayımlanır.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KVKK Politikası -->
+    <div class="modal fade modal-seri" id="kvkkPolicyModal" tabindex="-1" aria-labelledby="kvkkLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="kvkkLabel" class="modal-title">KVKK Politikası</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Amaç:</strong> 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) ve bağlı mevzuata uygun şekilde kişisel verilerin işlenmesine ilişkin Şirket ilkelerini belirler.</p>
+
+                    <h6>1) İlkelere Uyum</h6>
+                    <ul>
+                        <li><em>Hukuka ve dürüstlük kurallarına uygunluk</em></li>
+                        <li><em>Doğruluk ve güncellik</em></li>
+                        <li><em>Belirli, açık ve meşru amaçlar</em></li>
+                        <li><em>Amaçla bağlantılı, sınırlı ve ölçülü olma</em></li>
+                        <li><em>Gerekli süre kadar muhafaza</em></li>
+                    </ul>
+
+                    <h6>2) Özel Nitelikli Veriler</h6>
+                    <p>Özel nitelikli kişisel veriler kural olarak işlenmez. Zorunlu hallerde KVKK md.6 ve Kurul kararlarına uygun ek tedbirlerle işlenir.</p>
+
+                    <h6>3) Aydınlatma &amp; Rıza</h6>
+                    <p>Aydınlatma yükümlülüğü KVKK md.10’a göre yerine getirilir. Rıza gerektiren süreçlerde açık rıza alınır; rıza her zaman geri çekilebilir.</p>
+
+                    <h6>4) Veri Sahibi Başvuruları</h6>
+                    <p>Başvurular <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a> adresine yapılır; usule uygun başvurular en geç 30 gün içinde sonuçlandırılır.</p>
+
+                    <h6>5) Aktarım</h6>
+                    <p>Yurt içi/yurt dışı aktarım KVKK md.8-9 çerçevesinde; yeterli koruma, taahhütler ve gerekli izin/taahhütnameler sağlanarak yapılır.</p>
+
+                    <h6>6) Güvenlik Tedbirleri</h6>
+                    <p>Erişim yetkilendirmesi, en az ayrıcalık prensibi, ağ ve uygulama güvenliği, yedekleme, loglama, çalışan farkındalığı ve tedarikçi sözleşmeleri uygulanır.</p>
+
+                    <h6>7) Denetim ve Eğitim</h6>
+                    <p>Politikaya uyum düzenli olarak denetlenir; çalışanlara KVKK farkındalık eğitimleri verilir.</p>
+
+                    <h6>8) Yürürlük</h6>
+                    <p>Yönetim onayıyla yürürlüğe girer ve ihtiyaç halinde güncellenir.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aydınlatma Metni (Web Ziyaretçisi) -->
+    <div class="modal fade modal-seri" id="aydModal" tabindex="-1" aria-labelledby="aydLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="aydLabel" class="modal-title">Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Veri Sorumlusu:</strong> Seri Döviz — <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a></p>
+
+                    <h6>1) Amaç</h6>
+                    <p>Web sitemizi ziyaretiniz sırasında kişisel verileriniz; site güvenliği, ölçümleme/performans, talep ve şikâyetlerinize dönüş ve yasal yükümlülüklerimizin yerine getirilmesi amaçlarıyla işlenir.</p>
+
+                    <h6>2) İşlenen Veri Kategorileri</h6>
+                    <ul>
+                        <li>İşlem Güvenliği (IP, log kayıtları, cihaz/tarayıcı bilgisi),</li>
+                        <li>Pazarlama (çerez kimlikleri, sayfa etkileşimleri) — <em>açık rızaya tabi</em>,</li>
+                        <li>İletişim (form gönderirseniz: ad-soyad, e-posta, telefon, mesaj).</li>
+                    </ul>
+
+                    <h6>3) Toplama Yöntemi ve Hukuki Sebepler</h6>
+                    <ul>
+                        <li>Elektronik ortamda otomatik yollarla (çerezler, loglar, formlar).</li>
+                        <li>Hukuki sebepler: md.5/2-c (sözleşme), 5/2-ç (hukuki yükümlülük), 5/2-e (hakların tesisi), 5/2-f (meşru menfaat), pazarlama/analitik için md.5/1 (açık rıza).</li>
+                    </ul>
+
+                    <h6>4) Aktarım</h6>
+                    <p>Barındırma, güvenlik, analitik ve iletişim tedarikçilerimize; yurt dışına aktarım gerekirse KVKK md.9’a uygun önlemlerle.</p>
+
+                    <h6>5) Haklarınız</h6>
+                    <p>KVKK md.11 kapsamındaki haklarınızı <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a> adresine başvurarak kullanabilirsiniz. Başvurularınız 30 gün içinde sonuçlandırılır.</p>
+
+                    <h6>6) Saklama</h6>
+                    <p>Veriler, amaç için gerekli süre kadar, mevzuattaki süreler saklı kalmak kaydıyla muhafaza edilir; süre sonunda silinir, yok edilir veya anonimleştirilir.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Çerez Kullanımı -->
+    <div class="modal fade modal-seri" id="cookieModal" tabindex="-1" aria-labelledby="cookieLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="cookieLabel" class="modal-title">Çerez (Cookie) Politikası</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bu sitede çerezler; sitenin çalışması, güvenlik, tercihlerin hatırlanması ve performans &amp; analitik amaçlarıyla kullanılır.</p>
+
+                    <h6>1) Çerez Türleri</h6>
+                    <ul>
+                        <li><strong>Zorunlu:</strong> Oturum, yük dengeleme, güvenlik. (devre dışı bırakılamaz)</li>
+                        <li><strong>İşlevsel:</strong> Tercihlerin hatırlanması (tema, dil vb.).</li>
+                        <li><strong>Performans/Analitik:</strong> Ziyaret ve kullanım istatistikleri (açık rıza ile).</li>
+                        <li><strong>Pazarlama/Üçüncü Taraf:</strong> Yeniden pazarlama etiketleri (varsa ve açık rıza ile).</li>
+                    </ul>
+
+                    <h6>2) Yönetim</h6>
+                    <p>Tarayıcı ayarlarından çerezleri yönetebilir/silebilirsiniz. Analitik/pazarlama çerezleri, onay verilmedikçe çalıştırılmaz.</p>
+
+                    <h6>3) Saklama Süreleri</h6>
+                    <p>Oturum çerezleri tarayıcı kapatılınca silinir; kalıcı çerezler amaçlarına göre makul sürelerle tutulur.</p>
+
+                    <h6>4) Üçüncü Taraflar</h6>
+                    <p>Analitik ve içerik dağıtımı için üçüncü taraf hizmet sağlayıcılar kullanılabilir; bu tarafların kendi gizlilik politikaları geçerlidir.</p>
+
+                    <h6>5) İletişim</h6>
+                    <p>Çerezlerle ilgili sorular için: <a href="mailto:info@seridoviz.com">info@seridoviz.com</a></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

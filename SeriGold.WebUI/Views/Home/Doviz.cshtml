@@ -1,0 +1,497 @@
+﻿@{
+    ViewData["Title"] = "Döviz Kurları";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        /* sayfaya özel ufaklar */
+        .box {
+            border: 1px solid var(--sg-border);
+            border-radius: 14px
+        }
+
+        .smallmuted {
+            color: var(--sg-muted-strong);
+            font-size: .92rem
+        }
+
+        .price {
+            font-variant-numeric: tabular-nums
+        }
+    </style>
+}
+
+<div id="dovizApp" class="container-xxl py-3">
+    <!-- Üst bilgi + saat -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="chip"><i class="bi bi-lightning-charge"></i> <b>Canlı Piyasalar</b></div>
+        <div class="d-flex gap-2 flex-wrap">
+            <span class="chip"><i class="bi bi-clock-history"></i> Son güncelleme <b>{{ lastTs }}</b></span>
+            <span class="chip"><i class="bi bi-cloud-arrow-down"></i> Kaynak <b>Backend</b></span>
+        </div>
+    </div>
+
+    <!-- Ticker -->
+    <div class="ticker-wrap">
+        <div class="ticker">
+            <div class="ticker__track" aria-live="polite">
+                <template v-if="topList.length">
+                    <template v-for="(t,i) in tickerDoubled" :key="i">
+                        <span class="ticker__item">
+                            <span class="lbl">{{ t.label }}</span>
+                            <span class="val price" :class="t.delta>=0?'rise':'drop'">{{ n(t.value, t.label) }}</span>
+                            <i :class="t.delta>=0?'bi bi-caret-up-fill rise':'bi bi-caret-down-fill drop'"></i>
+                            <small :class="t.delta>=0?'rise':'drop'">%{{ p(t.delta, t.label) }}</small>
+                        </span>
+                    </template>
+                </template>
+                <template v-else>
+                    <span class="ticker__item"><span class="spinner-border spinner-border-sm"></span> <span>{{ loadMsg }}</span></span>
+                    <span class="ticker__item"><span class="spinner-border spinner-border-sm"></span> <span>{{ nextLoadMsg }}</span></span>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Çevirici -->
+    <div class="sg-card box p-3 mb-3 reveal tilt">
+        <div class="row g-2 align-items-end sg-input">
+            <!-- Sol: Gönderilen -->
+            <div class="col-12 col-md-5">
+                <label class="form-label small text-muted">Gönderilen</label>
+                <div class="input-group">
+                    <input v-model.number="convAmt" type="number" inputmode="decimal" step="0.01" min="0" class="form-control form-control-lg" />
+                    <select v-model="convPair" class="form-select form-select-lg">
+                        <option v-for="p in pairs" :key="p" :value="p">{{ p }}</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Orta: Yön değiştir -->
+            <div class="col-12 col-md-2 d-flex justify-content-center">
+                <button type="button" class="icon-btn w-100" @@click="convDir = !convDir" title="Yön değiştir" data-ripple>
+                    <i class="bi bi-arrow-left-right"></i>
+                </button>
+            </div>
+
+            <!-- Sağ: Alacağınız -->
+            <div class="col-12 col-md-5">
+                <label class="form-label small text-muted">Alacağınız</label>
+                <div class="input-group">
+                    <input :value="convResult==null?'—':n(convResult, convPairDisplay)" class="form-control form-control-lg" readonly />
+                    <!-- hedef para birimi etiketi: her zaman görüntülenen çiftin sağ tarafı -->
+                    <span class="input-group-text">{{ (convPairDisplay.split('/')[1] || '') }}</span>
+                    <button type="button" class="btn btn-gold-outline" @@click="copyConv()" title="Sonucu kopyala" data-ripple>
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alt satır: fiyat modu + birim kur -->
+            <div class="col-12 d-flex flex-wrap align-items-center gap-2 mt-1">
+                <div class="toggle-group compact" role="group" aria-label="Fiyat modu">
+                    <button type="button" class="toggle" :class="{active: convMode==='mid'}" @@click="convMode='mid'">Orta</button>
+                    <button type="button" class="toggle" :class="{active: convMode==='bid'}" @@click="convMode='bid'">Alış</button>
+                    <button type="button" class="toggle" :class="{active: convMode==='ask'}" @@click="convMode='ask'">Satış</button>
+                </div>
+
+                <span v-if="convUnitRate!=null" class="ms-auto smallmuted">
+                    1 {{ convDir ? convPairSplit[1] : convPairSplit[0] }} ≈
+                    <b class="price">{{ n(convUnitRate, convPairDisplay) }}</b>
+                    {{ convDir ? convPairSplit[0] : convPairSplit[1] }}
+                    <span class="text-subtle ms-2">({{ convModeLabel }})</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- SOL: Altın & Metaller / Sarrafiye sekmeli -->
+        <div class="col-lg-6">
+            <div class="sg-card box p-3 h-100 reveal tilt">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="toggle-group" role="tablist" aria-label="Emtia">
+                        <button type="button" class="toggle" :class="{active: activeTab==='metals'}" @@click="activeTab='metals'">Altın & Metaller</button>
+                        <button type="button" class="toggle" :class="{active: activeTab==='mint'}" @@click="activeTab='mint'">Sarrafiye</button>
+                    </div>
+                    <span class="smallmuted" v-if="activeTab==='metals'">XAU, XAG, Platin, Paladyum + Gram/TL</span>
+                    <span class="smallmuted" v-else>Yeni/Eski Çeyrek, Yarım, Tam, Ata, Gremse…</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm market-table sg-table">
+                        <thead>
+                            <tr>
+                                <th class="sticky">Ürün</th>
+                                <th class="text-end sticky">Alış</th>
+                                <th class="text-end sticky">Satış</th>
+                                <th class="text-end sticky">Değişim</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="!tabRows.length && !all.length">
+                                <td colspan="4" class="text-center smallmuted">
+                                    <span class="spinner-border spinner-border-sm me-2"></span> Yükleniyor…
+                                </td>
+                            </tr>
+                            <tr v-for="r in tabRows" :key="r.symbol">
+                                <td>
+                                    <i :class="isFav(r.symbol)?'bi bi-star-fill text-warning':'bi bi-star'" @@click="toggleFav(r.symbol)"></i>
+                                    <span class="ms-1">{{ fmtSym(r) }}</span>
+                                </td>
+                                <td class="text-end price" :class="pulseCls(r)">{{ n(r.bid, r.symbol) }}</td>
+                                <td class="text-end price" :class="pulseCls(r)">{{ n(r.ask, r.symbol) }}</td>
+                                <td class="text-end">
+                                    <span :class="dir(r)==='down'?'drop':'rise'">
+                                        <i :class="dir(r)==='down'?'bi bi-caret-down-fill':'bi bi-caret-up-fill'"></i>
+                                        %{{ p(delta(r), r.symbol) }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SAĞ: Döviz TRY/USD/EUR sekmeli -->
+        <div class="col-lg-6">
+            <div class="sg-card box p-3 h-100 reveal tilt" :class="{'dense': dense}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="toggle-group compact" role="tablist" aria-label="Döviz">
+                        <button type="button" class="toggle" :class="{active: fxTab==='TRY'}" @@click="fxTab='TRY'">TRY</button>
+                        <button type="button" class="toggle" :class="{active: fxTab==='USD'}" @@click="fxTab='USD'">USD</button>
+                        <button type="button" class="toggle" :class="{active: fxTab==='EUR'}" @@click="fxTab='EUR'">EUR</button>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 sg-input">
+                        <input v-model.trim="qFx" class="form-control form-control-sm" style="width:220px" placeholder="Ara: EUR/TRY, USD/JPY…" />
+                        <label class="form-check smallmuted"><input type="checkbox" v-model="fxFavOnly" class="form-check-input me-1">Sadece ★</label>
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="max-height:460px">
+                    <table class="table table-sm market-table sg-table">
+                        <thead>
+                            <tr>
+                                <th class="sticky">Parite</th>
+                                <th class="text-end sticky">Alış</th>
+                                <th class="text-end sticky">Satış</th>
+                                <th class="text-end sticky">Değişim</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="!fxTabRows.length && !all.length">
+                                <td colspan="4" class="text-center smallmuted">
+                                    <span class="spinner-border spinner-border-sm me-2"></span> Yükleniyor…
+                                </td>
+                            </tr>
+                            <tr v-for="r in fxTabRows" :key="r.symbol">
+                                <td>
+                                    <i :class="isFav(r.symbol)?'bi bi-star-fill text-warning':'bi bi-star'" title="Favori" @@click="toggleFav(r.symbol)"></i>
+                                    <span class="ms-1">{{ r.symbol }}</span>
+                                </td>
+                                <td class="text-end price" :class="pulseCls(r)">{{ n(r.bid, r.symbol) }}</td>
+                                <td class="text-end price" :class="pulseCls(r)">{{ n(r.ask, r.symbol) }}</td>
+                                <td class="text-end">
+                                    <span class="badge-soft" :class="dir(r)==='down'?'drop':'rise'">
+                                        <i :class="dir(r)==='down'?'bi bi-caret-down-fill':'bi bi-caret-up-fill'"></i>
+                                        %{{ p(delta(r), r.symbol) }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between smallmuted mt-1">
+                    <span>Gösterilen: <b>{{ fxTabRows.length }}</b></span>
+                    <span>Tab: <b>{{ fxTab }}</b></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js" crossorigin="anonymous"></script>
+    <script>
+        (function(){
+          const API={ latest:'/api/rates/latest', hub:'/ratesHub' };
+          const EPS=1e-9, IST_TZ='Europe/Istanbul';
+
+          function dayKeyTR(){
+            const f=new Intl.DateTimeFormat('tr-TR',{timeZone:IST_TZ,year:'numeric',month:'2-digit',day:'2-digit'});
+            const [gg,aa,yyyy]=f.format(new Date()).split('.');
+            return `${yyyy}-${aa}-${gg}`;
+          }
+
+          new Vue({
+            el:'#dovizApp',
+            data(){
+              return{
+                loadMsgs:['Güncel kurlar yükleniyor…','Veri alınıyor…','Piyasa akışı hazırlanıyor…','Anlık fiyatlar geliyor…','Bağlantı kuruluyor…','Canlı yayın başlıyor…'],
+                loadIdx:0, rotTimer:null,
+                all:[],
+                lastTs:'--:--:--',
+                favs:new Set(JSON.parse(localStorage.getItem('favSymbols')||'[]')),
+                convAmt:1, convPair:'EUR/TRY',
+                baseStore:{ key:'', map:new Map() },
+
+                // çevirici
+                convMode:'mid',   // 'mid' | 'bid' | 'ask'
+                convDir:false,    // false: soldan sağa, true: ters
+
+                prev:new Map(),
+                // sekmeler
+                activeTab:'metals',
+                fxTab:'TRY',
+                qFx:'', fxFavOnly:false, dense:false,
+                firstPaint:false
+              };
+            },
+            computed:{
+              loadMsg(){ return this.loadMsgs[this.loadIdx % this.loadMsgs.length]; },
+              nextLoadMsg(){ return this.loadMsgs[(this.loadIdx+1) % this.loadMsgs.length]; },
+
+              pairs(){ return Array.from(new Set(this.all.map(x=>x.symbol))).sort(); },
+
+              // ÇEVİRİCİ
+              convPairSplit(){ return (this.convPair||'').split('/'); },
+              convPairDisplay(){
+                if(!this.convPairSplit[1]) return this.convPair||'';
+                return this.convDir ? (this.convPairSplit[1]+'/'+this.convPairSplit[0]) : this.convPair;
+              },
+              convUnitRate(){
+                const px = this.priceOf(this.convPair, this.convMode);
+                if(px==null || px<=0) return null;
+                return this.convDir ? (1/px) : px;
+              },
+              convResult(){
+                const unit = this.convUnitRate;
+                if(unit==null) return null;
+                const amt = Number(this.convAmt);
+                if(!isFinite(amt)) return null;
+                return amt * unit;
+              },
+              convModeLabel(){ return this.convMode==='mid'?'Orta':(this.convMode==='bid'?'Alış':'Satış'); },
+
+              // LİSTELER
+              tabRows(){ return this.activeTab==='metals'?this.metals:this.mint; },
+              topList(){
+                const base=['ALTIN/GRAM','XAU/USD','USD/KG(ALTIN)','EUR/KG(ALTIN)','GÜMÜŞ/GRAM','USD/TRY','EUR/TRY','EUR/USD','USD/JPY'];
+                const bySym=new Map(this.all.map(x=>[x.symbol,x]));
+                const favs=Array.from(this.favs).map(s=>bySym.get(s)).filter(Boolean);
+                const baseItems=base.map(s=>bySym.get(s)).filter(Boolean);
+                const uniq=Array.from(new Map([].concat(favs,baseItems).map(r=>[r.symbol,r])).values());
+                return uniq.map(r=>({label:r.symbol,value:(r.ask??r.bid),delta:this.delta(r)}));
+              },
+              tickerDoubled(){ return this.topList.concat(this.topList); },
+
+              metals(){
+                const order=['ALTIN/GRAM','ONS','USD/KG(ALTIN)','EUR/KG(ALTIN)','AYAR22/GRAM','AYAR14/GRAM','GÜMÜŞ/GRAM','XAG/USD','XPT/USD','XPD/USD'];
+                const rows=this.all.map(r=>(r.symbol==='XAU/USD'?{...r,_disp:'ONS'}:{...r,_disp:r.symbol}));
+                const dict=new Map(rows.map(x=>[x._disp,x]));
+                return order.map(k=>dict.get(k)).filter(Boolean);
+              },
+              mint(){
+                const names=['YENİ ÇEYREK','ESKİ ÇEYREK','YENİ YARIM','ESKİ YARIM','YENİ TAM','ESKİ TAM','YENİ ATA','ESKİ ATA','YENİ ATA5','ESKİ ATA5','YENİ GREMSE','ESKİ GREMSE'];
+                const dict=new Map(this.all.filter(x=>names.includes(x.symbol)).map(x=>[x.symbol,x]));
+                return names.map(n=>dict.get(n)).filter(Boolean);
+              },
+
+              fxTryFull(){
+                const q=this.qFx.trim().toUpperCase();
+                let f=this.all.filter(x=>/\/TRY$/.test(x.symbol));
+                if(this.fxFavOnly) f=f.filter(x=>this.isFav(x.symbol));
+                if(q) f=f.filter(x=>x.symbol.includes(q));
+                return f;
+              },
+              fxUsdFull(){
+                const q=this.qFx.trim().toUpperCase();
+                let f=this.all.filter(x=>/\/USD$|^USD\//.test(x.symbol));
+                if(this.fxFavOnly) f=f.filter(x=>this.isFav(x.symbol));
+                if(q) f=f.filter(x=>x.symbol.includes(q));
+                return f;
+              },
+              fxEur(){
+                const q=this.qFx.trim().toUpperCase();
+                let f=this.all.filter(x=>/\/EUR$|^EUR\//.test(x.symbol));
+                if(this.fxFavOnly) f=f.filter(x=>this.isFav(x.symbol));
+                if(q) f=f.filter(x=>x.symbol.includes(q));
+                return f;
+              },
+              fxTabRows(){
+                switch(this.fxTab){
+                  case 'USD': return this.fxUsdFull;
+                  case 'EUR': return this.fxEur;
+                  default:    return this.fxTryFull;
+                }
+              }
+            },
+            methods:{
+              // ÇEVİRİCİ yardımcıları
+              priceOf(sym, mode){
+                const r = this.all.find(x=>x.symbol===sym);
+                if(!r) return null;
+                const mid = this.mid(r.bid, r.ask);
+                if(mode==='bid') return (r.bid!=null)?+r.bid:(mid!=null?mid:null);
+                if(mode==='ask') return (r.ask!=null)?+r.ask:(mid!=null?mid:null);
+                return mid; // 'mid'
+              },
+              copyConv(){
+                try{
+                  const txt = this.convResult==null ? '' :
+                    `${this.n(this.convAmt, this.convPairSplit[0])} ${this.convPairSplit[0]} ≈ ${this.n(this.convResult, this.convPairDisplay)} ${this.convPairDisplay.split('/')[1]} (${this.convModeLabel})`;
+                  if(txt) navigator.clipboard.writeText(txt);
+                }catch(_){}
+              },
+
+              // format/helpers
+              disp(sym){ return sym==='XAU/USD'?'ONS':sym; },
+              truncTo(v,d){ const f=Math.pow(10,d); return Math.trunc((+v)*f)/f; },
+              dp(sym){
+                if(!sym) return 6;
+                if(sym==='ONS') return 1;
+                if(/GRAM|KG\(|GREMSE|ÇEYREK|YARIM|TAM|ATA/.test(sym)) return 2;
+                if(/\/JPY$|\/HUF$|\/KRW$|\/IDR$/.test(sym)) return 3;
+                if(/\/TRY$/.test(sym)) return 4;
+                return 6;
+              },
+              n(v,sym){
+                if(v==null) return '—';
+                const d=this.dp(sym), t=this.truncTo(v,d);
+                return t.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+              },
+              p(v){
+                const num=Number(v);
+                if(!isFinite(num)) return '0,00';
+                const abs=Math.abs(num), d=abs<0.01?3:2;
+                const t=this.truncTo(num,d);
+                const out=t.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+                return out==='-0,00'?'0,00':out;
+              },
+              mid(bid,ask){
+                if(bid==null && ask==null) return null;
+                if(bid==null) return +ask;
+                if(ask==null) return +bid;
+                return ((+bid)+(+ask))/2;
+              },
+
+              loadBase(){
+                const key='rates.base.'+dayKeyTR();
+                if(this.baseStore.key!==key){
+                  this.baseStore.key=key;
+                  const raw=localStorage.getItem(key);
+                  const obj=raw?JSON.parse(raw):{};
+                  this.baseStore.map=new Map(Object.entries(obj).map(([k,v])=>[k,+v]));
+                }
+              },
+              saveBase(){ localStorage.setItem(this.baseStore.key, JSON.stringify(Object.fromEntries(this.baseStore.map))); },
+
+              delta(r){ return (typeof r._delta==='number')?r._delta:0; },
+              dir(r){ return (r._dir==='down')?'down':'up'; },
+              pulseCls(r){ return r?(r._pulse==='down'?'flash-down':(r._pulse==='up'?'flash-up':'')):''; },
+
+              apply(list){
+                this.loadBase();
+                // aynı sembolden son geleni al
+                const latest=new Map(); for(const r of list) latest.set(r.symbol,r);
+                const arr=Array.from(latest.values()).sort((a,b)=>a.symbol.localeCompare(b.symbol));
+
+                let baseChanged=false;
+
+                for(const it of arr){
+                  const sym=it.symbol;
+                  const cur=this.mid(it.bid,it.ask);
+                  const pv=this.prev.get(sym);
+
+                  const serverHasChange=(typeof it.change==='number' && isFinite(it.change));
+                  if(serverHasChange){
+                    it._delta=+it.change;
+                    it._dir=(it.dir==='down')?'down':(it._delta<0?'down':'up');
+                  }else{
+                    let base=this.baseStore.map.get(sym);
+                    if(base==null && cur!=null && isFinite(cur) && cur>0){ this.baseStore.map.set(sym,cur); base=cur; baseChanged=true; }
+                    if(base!=null && cur!=null && Math.abs(base)>EPS) it._delta=((cur-base)/base)*100;
+                    else it._delta=(pv && typeof pv.delta==='number')?pv.delta:0;
+                    it._dir=(pv && pv.v!=null && cur!=null)?(cur>=pv.v?'up':'down'):(it._delta<0?'down':'up');
+                  }
+
+                  if(pv && cur!=null && pv.v!=null){
+                    const changed=Math.abs(cur-pv.v)>EPS;
+                    if(changed){
+                      const d=cur>=pv.v?'up':'down';
+                      this.$set(it,'_pulse',d);
+                      setTimeout(()=>{ try{ this.$set(it,'_pulse',null); }catch(e){} },600);
+                    }
+                  }
+                  if(cur!=null) this.prev.set(sym,{v:cur,delta:it._delta,dir:it._dir});
+                }
+
+                if(baseChanged) this.saveBase();
+
+                const wasEmpty = this.all.length===0;
+                this.all=arr;
+                this.lastTs=new Date().toLocaleTimeString('tr-TR',{hour12:false,timeZone:IST_TZ});
+
+                if(!arr.find(x=>x.symbol===this.convPair) && arr.length) this.convPair=arr[0].symbol;
+
+                if(wasEmpty && arr.length){
+                  this.firstPaint = true;
+                  try{ window.PageLoader && PageLoader.hide(); }catch(_){}
+                  if(this.rotTimer){ clearInterval(this.rotTimer); this.rotTimer=null; }
+                }
+              },
+
+              norm(list){
+                return (list||[]).map(x=>({
+                  symbol:x.symbol||x.Symbol||x.code||x.Code,
+                  bid:(x.bid??x.Bid??x.buy??x.Buy),
+                  ask:(x.ask??x.Ask??x.sell??x.Sell),
+                  change:(typeof x.change==='number'?+x.change:(typeof x.Change==='number'?+x.Change:null)),
+                  dir:(x.dir||x.Dir||null)
+                })).filter(x=>x.symbol);
+              },
+
+              pull(){
+                fetch(API.latest,{cache:'no-store'})
+                  .then(r=>{ if(!r.ok) throw new Error('http'); return r.json(); })
+                  .then(j=>this.apply(this.norm(j)))
+                  .catch(()=>{ /* sessizce */ });
+              },
+              push(){
+                if(!window.signalR) return;
+                const hub=new signalR.HubConnectionBuilder()
+                  .withUrl(API.hub,{transport:signalR.HttpTransportType.WebSockets})
+                  .withAutomaticReconnect()
+                  .configureLogging(signalR.LogLevel.Error)
+                  .build();
+                hub.on('rates:update', payload => this.apply(this.norm(payload)));
+                hub.onreconnected(()=>this.pull());
+                hub.start().catch(()=>{});
+              },
+
+              toggleFav(sym){
+                const s=new Set(this.favs);
+                if(s.has(sym)) s.delete(sym); else s.add(sym);
+                this.favs=s;
+                localStorage.setItem('favSymbols', JSON.stringify(Array.from(this.favs)));
+              },
+              isFav(sym){ return this.favs.has(sym); },
+              fmtSym(r){ return this.activeTab==='metals' ? (r.symbol==='XAU/USD'?'ONS':r.symbol) : r.symbol; }
+            },
+            mounted(){
+              try{ window.PageLoader && PageLoader.show(); }catch(_){}
+              this.rotTimer = setInterval(()=>{ this.loadIdx = (this.loadIdx+1) % this.loadMsgs.length; }, 1400);
+
+              this.pull(); this.push();
+              setInterval(()=>this.pull(), 1500);
+              document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) this.pull(); });
+            }
+          });
+        })();
+    </script>
+}
