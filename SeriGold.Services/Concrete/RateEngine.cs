@@ -1,8 +1,4 @@
-﻿// RateEngine.cs
-using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Text.Json;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -11,6 +7,9 @@ using SeriGold.Core.Hubs;
 using SeriGold.DTO.Rates;
 using SeriGold.Services.Abstracts;
 using SeriGold.Services.Concrete;
+using System.Globalization;
+using System.Linq;
+using System.Text.Json;
 
 public sealed class RateEngine : BackgroundService
 {
@@ -19,15 +18,17 @@ public sealed class RateEngine : BackgroundService
     private readonly IHubContext<RatesHub> _hub;
     private readonly ILogger<RateEngine> _log;
     private readonly TimeSpan _interval;
-    private readonly HttpClient _http;
+    private readonly TimeSpan _forceBroadcast;
 
-    private readonly Dictionary<string, decimal> _baseMid = new(StringComparer.Ordinal);
+    private readonly HttpClient _ffHttp;
+    private readonly string _ffBase;
+    private readonly string _ffKey;
+
     private readonly Dictionary<string, decimal> _lastMid = new(StringComparer.Ordinal);
-    private DateTime _baseDayTr = DateTime.MinValue;
+    private DateTime _lastBroadcastUtc = DateTime.MinValue;
 
-    private static readonly string TrZoneId =
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Turkey Standard Time" : "Europe/Istanbul";
-    private static readonly TimeZoneInfo TrTz = TimeZoneInfo.FindSystemTimeZoneById(TrZoneId);
+    // yayın eşiği
+    private readonly decimal _minPctChange;
 
     public RateEngine(IEnumerable<IRateProvider> providers,
                       IMemoryCache cache,
@@ -40,158 +41,360 @@ public sealed class RateEngine : BackgroundService
         _cache = cache;
         _hub = hub;
         _log = log;
-        _interval = TimeSpan.FromSeconds(cfg.GetValue<int>("Rates:IntervalSeconds", 1));
 
-        _http = httpFactory.CreateClient();
-        _http.Timeout = TimeSpan.FromSeconds(10);
-        _http.DefaultRequestHeaders.UserAgent.ParseAdd("SeriGold/1.0 (+serigold)");
-        _http.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        var sec = Math.Max(1, cfg.GetValue("Rates:IntervalSeconds", 1));
+        _interval = TimeSpan.FromSeconds(sec);
+        _minPctChange = cfg.GetValue("Rates:BroadcastMinChangePct", 0.0001m);
+        _forceBroadcast = TimeSpan.FromSeconds(Math.Max(2, cfg.GetValue("Rates:ForceBroadcastSeconds", 3)));
+
+        _ffHttp = httpFactory.CreateClient();
+        _ffHttp.Timeout = TimeSpan.FromSeconds(5);
+        if (!_ffHttp.DefaultRequestHeaders.UserAgent.Any())
+            _ffHttp.DefaultRequestHeaders.UserAgent.ParseAdd("SeriGold/1.0 (+seridoviz)");
+
+        _ffBase = cfg.GetValue<string>("Sources:FastForex:Base") ?? "https://api.fastforex.io";
+        _ffKey = cfg.GetValue<string>("Sources:FastForex:ApiKey")
+                 ?? throw new InvalidOperationException("Sources:FastForex:ApiKey missing");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var timer = new PeriodicTimer(_interval);
+        var gate = new SemaphoreSlim(1, 1);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var trToday = TimeZoneInfo.ConvertTime(DateTime.UtcNow, TrTz).Date;
-                if (_baseDayTr != trToday)
+                // tick çakışmalarını engelle
+                if (!await gate.WaitAsync(0, stoppingToken))
                 {
-                    _baseMid.Clear();
-                    await BootstrapDailyBaseAsync(trToday, stoppingToken);
-                    _baseDayTr = trToday;
+                    _log.LogDebug("Skip overlapping tick");
                 }
-
-                // 1) Sağlayıcılar
-                var raw = new List<RateTick>();
-                foreach (var p in _providers)
+                else
                 {
-                    try
-                    {
-                        var part = await p.GetAsync(stoppingToken);
-                        _log.LogInformation("Provider {Provider} -> {Count} rows", p.GetType().Name, part.Count);
-                        raw.AddRange(part);
-                    }
-                    catch (Exception ex) { _log.LogError(ex, "Provider {Provider} failed", p.GetType().Name); }
-                }
-
-                // 2) Türetilmişler
-                raw.AddRange(DerivedRates.Build(raw));
-
-                // 3) En güncel semboller
-                var latest = raw.GroupBy(x => x.Symbol, StringComparer.Ordinal)
-                                .Select(g => g.OrderByDescending(x => x.SourceTimeUtc).First())
-                                .ToList();
-
-                // 4) DTO (dünkü TR kapanışa göre %)
-                var dto = latest.Select(x =>
-                {
-                    if (!_baseMid.TryGetValue(x.Symbol, out var baseV) || baseV <= 0m)
-                    {
-                        _baseMid[x.Symbol] = x.Mid;
-                        baseV = x.Mid;
-                    }
-
-                    var daily = baseV == 0m ? 0m : (x.Mid - baseV) / baseV * 100m;
-
-                    _lastMid.TryGetValue(x.Symbol, out var prev);
-                    var dir = (prev == 0m || x.Mid >= prev) ? "up" : "down";
-                    _lastMid[x.Symbol] = x.Mid;
-
-                    return new RateDto(x.Symbol, x.Bid, x.Ask, daily, dir);
-                }).ToList();
-
-                // 5) Cache + yayın
-                if (dto.Count > 0)
-                {
-                    _cache.Set("rates.all", dto, TimeSpan.FromMinutes(2));
-                    await _hub.Clients.All.SendAsync("rates:update", dto, stoppingToken);
+                    await TickOnce(stoppingToken);
                 }
             }
-            catch (Exception ex) { _log.LogError(ex, "RateEngine tick failed"); }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "RateEngine tick failed");
+            }
+            finally
+            {
+                if (gate.CurrentCount == 0) gate.Release();
+            }
 
-            await Task.Delay(_interval, stoppingToken);
+            try { await timer.WaitForNextTickAsync(stoppingToken); } catch { }
         }
     }
 
-    // ---------- Dünkü (TR) kapanıştan bazları kur ----------
-    private sealed class ExHostResp { public Dictionary<string, decimal>? rates { get; set; } }
-
-    private async Task BootstrapDailyBaseAsync(DateTime trToday, CancellationToken ct)
+    private async Task TickOnce(CancellationToken ct)
     {
-        DateTime targetTr = trToday.AddDays(-1);
-        Dictionary<string, decimal>? fxRates = null;
-        decimal xauUsd = 0, xagUsd = 0, xptUsd = 0, xpdUsd = 0;
-        string? usedDateStr = null;
+        var now = DateTime.UtcNow;
 
-        for (int i = 0; i < 5; i++)
+        // 1) Sağlayıcıları paralel ve zamanlı çalıştır
+        var tasks = _providers.Select(p => FetchProvider(p, ct)).ToArray();
+        var results = await Task.WhenAll(tasks);
+        var raw = results.SelectMany(x => x).ToList();
+
+        if (raw.Count == 0)
         {
-            var ds = targetTr.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            _log.LogWarning("No provider data this tick");
+            return;
+        }
+
+        // 2) FastForex TRY çiftlerini Truncgil’e kalibre et (serbest piyasa yakınlığı)
+        ApplySerbestPiyasaCalibration(raw);
+
+        // 3) Türevler (yoksa üret)
+        raw.AddRange(DerivedRates.Build(raw));
+
+        // 4) Aynı sembolden en yeni olanı
+        var latest = raw.GroupBy(x => x.Symbol, StringComparer.Ordinal)
+                        .Select(g => g.OrderByDescending(z => z.SourceTimeUtc).First())
+                        .ToList();
+
+        // 5) FX baseline — dünkü (İstanbul iş günü)
+        var fxSymbols = latest
+    .Select(x => x.Symbol)          // önce string'e indir
+    .Where(IsFxPair)                // sonra predicate uygula
+    .ToHashSet(StringComparer.Ordinal);
+        //var fxSymbols = latest.Where(x => IsFxPair(x.Symbol)).Select(x => x.Symbol).ToHashSet(StringComparer.Ordinal);
+        var baseMap = await EnsureFxBaselineAsync(fxSymbols, ct);
+
+        // 6) DTO projeksiyonu (yön + yüzde)
+        var dto = latest.Select(x =>
+        {
+            decimal? change = null;
+            string dir;
+
+            if (x.Source.Equals("harem", StringComparison.OrdinalIgnoreCase) && x.Change.HasValue)
+            {
+                change = x.Change;
+                dir = change.Value < 0 ? "down" : "up";
+            }
+            else if (IsFxPair(x.Symbol) && baseMap.TryGetValue(x.Symbol, out var baseMid) && baseMid > 0m)
+            {
+                // Kalibre edilmişse baseline'ı da aynı katsayıyla düzelt
+                var adjBase = AdjustBaselineIfCalibrated(x.Symbol, baseMid);
+                change = ((x.Mid - adjBase) / adjBase) * 100m;
+                dir = change.Value < 0 ? "down" : "up";
+            }
+            else
+            {
+                _lastMid.TryGetValue(x.Symbol, out var prev);
+                dir = (x.Mid >= prev) ? "up" : "down";
+            }
+
+            _lastMid[x.Symbol] = x.Mid;
+            return new RateDto(x.Symbol, x.Bid, x.Ask, change, dir);
+        }).ToList();
+
+        if (dto.Count == 0) return;
+
+        // 7) Cache’i güncelle (son iyi veri kaydı dahil)
+        _cache.Set("rates.all", dto, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10),
+            SlidingExpiration = TimeSpan.FromSeconds(5)
+        });
+        _cache.Set("rates.lastgood", dto, TimeSpan.FromMinutes(10));
+
+        // 8) Yayın — sadece anlamlı değişimde ya da zorunlu sürede
+        if (ShouldBroadcast(dto))
+        {
+            await _hub.Clients.All.SendAsync("rates:update", dto, ct);
+            _lastBroadcastUtc = now;
+        }
+    }
+
+    private async Task<IReadOnlyList<RateTick>> FetchProvider(IRateProvider provider, CancellationToken ct)
+    {
+        var timeoutMs = provider switch
+        {
+            HaremAltinProvider => 5000,
+            TruncgilFxProvider => 4000,
+            FastForexProvider => 2000,
+            _ => 3000
+        };
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(timeoutMs);
+
+        try
+        {
+            return await provider.GetAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            _log.LogWarning("Provider {P} timeout ({Ms} ms)", provider.GetType().Name, timeoutMs);
+            return Array.Empty<RateTick>();
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Provider {P} failed", provider.GetType().Name);
+            return Array.Empty<RateTick>();
+        }
+    }
+
+    // ---- Serbest Piyasa Kalibrasyonu (TRY çiftleri) ----
+    private readonly Dictionary<string, decimal> _calFactor = new(StringComparer.Ordinal);
+
+    // RateEngine içi: mevcut ApplySerbestPiyasaCalibration metodunu bu versiyonla değiştir
+    private void ApplySerbestPiyasaCalibration(List<RateTick> raw)
+    {
+        var ff = raw.Where(x => x.Source.StartsWith("fastforex")).ToList();
+        if (ff.Count == 0) return;
+
+        var bySym = raw.GroupBy(x => x.Symbol, StringComparer.Ordinal)
+                       .ToDictionary(g => g.Key, g => g.OrderByDescending(z => z.SourceTimeUtc).First(), StringComparer.Ordinal);
+
+        // Çıpa önceliği: serbest -> truncgil
+        RateTick? Anchor(string sym)
+        {
+            if (bySym.TryGetValue(sym, out var s) && s.Source == "serbest") return s;
+            if (bySym.TryGetValue(sym, out var t) && t.Source == "truncgil") return t;
+            return null;
+        }
+
+        var usdAnchor = Anchor("USD/TRY");
+        var eurAnchor = Anchor("EUR/TRY");
+
+        // katsayıları hesapla
+        decimal? kUsd = null, kEur = null;
+        var ffUsd = ff.FirstOrDefault(x => x.Symbol == "USD/TRY");
+        var ffEur = ff.FirstOrDefault(x => x.Symbol == "EUR/TRY");
+
+        if (usdAnchor is not null && ffUsd is not null && ffUsd.Mid > 0) kUsd = usdAnchor.Mid / ffUsd.Mid;
+        if (eurAnchor is not null && ffEur is not null && ffEur.Mid > 0) kEur = eurAnchor.Mid / ffEur.Mid;
+
+        if (kUsd is null && kEur is null) return; // çıpa yok, çık
+
+        // katsayıları sakla (baseline düzeltmesi için)
+        if (kUsd is not null) _calFactor["USD/TRY"] = kUsd.Value;
+        if (kEur is not null) _calFactor["EUR/TRY"] = kEur.Value;
+
+        // pip ayarı: TRY için 4 hane, JPY tarafı 3 hane
+        static decimal RoundLike(string s, decimal v)
+        {
+            int dps = s.EndsWith("/JPY", StringComparison.Ordinal) || s.StartsWith("JPY/", StringComparison.Ordinal) ? 3 : 4;
+            return Math.Round(v, dps, MidpointRounding.AwayFromZero);
+        }
+
+        // Spread’i hafif daralt (config’den de okuyalım)
+        var spPct = AppSpreadPct();
+
+        foreach (var r in ff.Where(x => x.Symbol.EndsWith("/TRY", StringComparison.Ordinal) || x.Symbol.StartsWith("TRY/", StringComparison.Ordinal)).ToList())
+        {
+            decimal? k = null;
+            if (r.Symbol == "EUR/TRY" || r.Symbol.StartsWith("EUR/")) k = kEur ?? kUsd;
+            else k = kUsd ?? kEur;
+
+            if (k is null) continue;
+
+            var mid = r.Mid * k.Value;
+            // TRY/XXX ters çiftleri için ters ölçek
+            if (r.Symbol.StartsWith("TRY/", StringComparison.Ordinal)) mid = r.Mid / k.Value;
+
+            // spread’i yeniden kur
+            var half = mid * spPct;
+            var nb = (decimal?)RoundLike(r.Symbol, mid - half);
+            var na = (decimal?)RoundLike(r.Symbol, mid + half);
+            var nm = RoundLike(r.Symbol, mid);
+
+            raw.Remove(r);
+            raw.Add(new RateTick(r.Symbol, nb, na, nm, DateTime.UtcNow, "fastforex-cal"));
+        }
+
+        decimal AppSpreadPct()
+        {
             try
             {
-                var fx = await Get<ExHostResp>($"https://api.exchangerate.host/{ds}?base=USD", ct);
-                if (fx?.rates is { Count: > 0 }) fxRates = fx.rates;
-
-                var rXau = await Get<ExHostResp>($"https://api.exchangerate.host/{ds}?base=XAU&symbols=USD", ct);
-                if (rXau?.rates?.TryGetValue("USD", out var vXau) == true) xauUsd = vXau;
-
-                var rXag = await Get<ExHostResp>($"https://api.exchangerate.host/{ds}?base=XAG&symbols=USD", ct);
-                if (rXag?.rates?.TryGetValue("USD", out var vXag) == true) xagUsd = vXag;
-                var rXpt = await Get<ExHostResp>($"https://api.exchangerate.host/{ds}?base=XPT&symbols=USD", ct);
-                if (rXpt?.rates?.TryGetValue("USD", out var vXpt) == true) xptUsd = vXpt;
-                var rXpd = await Get<ExHostResp>($"https://api.exchangerate.host/{ds}?base=XPD&symbols=USD", ct);
-                if (rXpd?.rates?.TryGetValue("USD", out var vXpd) == true) xpdUsd = vXpd;
-
-                if (fxRates != null && fxRates.TryGetValue("TRY", out var usdTryY) && usdTryY > 0m && xauUsd > 0m)
-                {
-                    usedDateStr = ds;
-                    var ticks = new List<RateTick>();
-
-                    foreach (var (ccy, per) in fxRates)
-                    {
-                        if (ccy == "USD" || per <= 0) continue;
-                        ticks.Add(new RateTick($"USD/{ccy}", per, per, per, targetTr, "yday"));
-                        ticks.Add(new RateTick($"{ccy}/USD", 1m / per, 1m / per, 1m / per, targetTr, "yday"));
-                        if (ccy != "TRY")
-                        {
-                            var midTry = usdTryY / per;       // ← kritik doğrulama
-                            ticks.Add(new RateTick($"{ccy}/TRY", midTry, midTry, midTry, targetTr, "yday"));
-                        }
-                    }
-                    ticks.Add(new RateTick("USD/TRY", usdTryY, usdTryY, usdTryY, targetTr, "yday"));
-                    ticks.Add(new RateTick("TRY/USD", 1m / usdTryY, 1m / usdTryY, 1m / usdTryY, targetTr, "yday"));
-
-                    ticks.Add(new RateTick("XAU/USD", xauUsd, xauUsd, xauUsd, targetTr, "yday"));
-                    if (xagUsd > 0) ticks.Add(new RateTick("XAG/USD", xagUsd, xagUsd, xagUsd, targetTr, "yday"));
-                    if (xptUsd > 0) ticks.Add(new RateTick("XPT/USD", xptUsd, xptUsd, xptUsd, targetTr, "yday"));
-                    if (xpdUsd > 0) ticks.Add(new RateTick("XPD/USD", xpdUsd, xpdUsd, xpdUsd, targetTr, "yday"));
-
-                    ticks.AddRange(DerivedRates.Build(ticks));
-
-                    foreach (var t in ticks)
-                        _baseMid[t.Symbol] = t.Mid;
-
-                    _cache.Set("rates.base.map", new Dictionary<string, decimal>(_baseMid), TimeSpan.FromHours(36));
-                    _cache.Set("rates.base.date", usedDateStr!, TimeSpan.FromHours(36));
-
-                    _log.LogInformation("Daily bases loaded (TR day {TrDay}) using {UsedDate} — {Count} symbols",
-                        trToday.ToString("yyyy-MM-dd"), usedDateStr, _baseMid.Count);
-                    return;
-                }
+                var pct = (decimal?)(_hub as object) != null // DI yok burada, _cfg yok; RateEngine ctor’unda okuyup field’a da alabilirdin.
+                    ? 0.0006m
+                    : 0.0006m;
+                return pct;
             }
-            catch (Exception ex) { _log.LogWarning(ex, "Bootstrap try {Date} failed", ds); }
-
-            targetTr = targetTr.AddDays(-1);
+            catch { return 0.0006m; }
         }
-
-        _log.LogError("BootstrapDailyBase failed (no suitable historical day). Falling back to first-seen prices.");
     }
 
-    private async Task<T?> Get<T>(string url, CancellationToken token)
+
+    private decimal AdjustBaselineIfCalibrated(string sym, decimal baseMid)
     {
-        using var r = await _http.GetAsync(url, token);
-        r.EnsureSuccessStatusCode();
-        var j = await r.Content.ReadAsStringAsync(token);
-        return JsonSerializer.Deserialize<T>(j, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        // sadece TRY çiftlerinde kalibre ediyoruz
+        if (_calFactor.TryGetValue(sym, out var k) && k > 0) return baseMid * k;
+        return baseMid;
+    }
+
+    // ---- Yayın karar mekanizması ----
+    private bool ShouldBroadcast(List<RateDto> dto)
+    {
+        var now = DateTime.UtcNow;
+        if ((now - _lastBroadcastUtc) >= _forceBroadcast) return true;
+
+        // küçük değişimler için yayını atla
+        var prev = _cache.Get<List<RateDto>>("rates.prev") ?? new List<RateDto>();
+        var prevMap = prev.ToDictionary(x => x.Symbol, x => x, StringComparer.Ordinal);
+
+        foreach (var r in dto)
+        {
+            if (!prevMap.TryGetValue(r.Symbol, out var p))
+                return true; // yeni sembol
+
+            var curMid = Mid(r.Bid, r.Ask);
+            var prevMid = Mid(p.Bid, p.Ask);
+            if (curMid is null || prevMid is null) continue;
+            if (prevMid.Value == 0) return true;
+
+            var pct = Math.Abs((curMid.Value - prevMid.Value) / prevMid.Value) * 100m;
+            if (pct >= _minPctChange) return true;
+        }
+
+        // threshold altında → yayınlama
+        return false;
+
+        static decimal? Mid(decimal? b, decimal? a)
+            => (b, a) switch
+            {
+                (null, null) => null,
+                (decimal bb, null) => bb,
+                (null, decimal aa) => aa,
+                (decimal bb, decimal aa) => (bb + aa) / 2m
+            };
+    }
+
+    // ---- FX baseline (dünkü İstanbul iş günü) ----
+    private static bool IsFxPair(string sym)
+        => sym.Length >= 7 && char.IsUpper(sym[0]) && char.IsUpper(sym[1]) && char.IsUpper(sym[2])
+           && sym[3] == '/' && char.IsUpper(sym[4]) && char.IsUpper(sym[5]) && char.IsUpper(sym[6]);
+
+    private static string PrevBusinessDateTR()
+    {
+        TimeZoneInfo tz;
+        try { tz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Istanbul"); }
+        catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time"); }
+
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+        var d = nowLocal.Date.AddDays(-1);
+        if (d.DayOfWeek == DayOfWeek.Sunday) d = d.AddDays(-2);
+        else if (d.DayOfWeek == DayOfWeek.Saturday) d = d.AddDays(-1);
+        return d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    }
+
+    private async Task<Dictionary<string, decimal>> EnsureFxBaselineAsync(HashSet<string> fxSymbols, CancellationToken ct)
+    {
+        var outMap = _cache.Get<Dictionary<string, decimal>>("rates.base.map");
+        var outDate = _cache.Get<string>("rates.base.date");
+        var targetDate = PrevBusinessDateTR();
+
+        if (outMap != null && outMap.Count > 0 && string.Equals(outDate, targetDate, StringComparison.Ordinal))
+            return outMap;
+
+        var byBase = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var s in fxSymbols)
+        {
+            var parts = s.Split('/');
+            if (parts.Length != 2) continue;
+            var from = parts[0]; var to = parts[1];
+            if (!byBase.TryGetValue(from, out var set)) byBase[from] = set = new(StringComparer.Ordinal);
+            set.Add(to);
+        }
+
+        var map = new Dictionary<string, decimal>(StringComparer.Ordinal);
+
+        foreach (var kv in byBase)
+        {
+            try
+            {
+                var from = kv.Key;
+                var toCsv = string.Join(",", kv.Value);
+                var url = $"{_ffBase}/historical?from={from}&date={targetDate}&to={toCsv}&api_key={_ffKey}";
+                using var r = await _ffHttp.GetAsync(url, ct);
+                r.EnsureSuccessStatusCode();
+
+                using var doc = JsonDocument.Parse(await r.Content.ReadAsStringAsync(ct));
+                if (!doc.RootElement.TryGetProperty("results", out var results) || results.ValueKind != JsonValueKind.Object)
+                    continue;
+
+                foreach (var p in results.EnumerateObject())
+                {
+                    if (p.Value.ValueKind != JsonValueKind.Number) continue;
+                    var mid = (decimal)p.Value.GetDouble();
+                    map[$"{from}/{p.Name}"] = mid;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "FastForex historical fetch failed for {Base}", kv.Key);
+            }
+        }
+
+        _cache.Set("rates.base.map", map, TimeSpan.FromMinutes(30));
+        _cache.Set("rates.base.date", targetDate, TimeSpan.FromMinutes(30));
+        _cache.Set("rates.prev", _cache.Get<List<RateDto>>("rates.all") ?? new List<RateDto>(), TimeSpan.FromMinutes(5));
+
+        return map;
     }
 }

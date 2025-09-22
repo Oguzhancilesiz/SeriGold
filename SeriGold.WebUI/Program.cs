@@ -1,4 +1,5 @@
-﻿// WebUI/Program.cs
+﻿using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.StaticFiles;
 using SeriGold.Core.Hubs;
 using SeriGold.Services.Abstracts;
 using SeriGold.Services.Concrete;
@@ -11,33 +12,38 @@ namespace SeriGold.WebUI
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddHttpClient();
+            // Services
+            builder.Services.AddHttpClient(); // genel fabrika
             builder.Services.AddMemoryCache();
-            builder.Services.AddSignalR();
+
+            builder.Services.AddResponseCompression(opts =>
+            {
+                opts.EnableForHttps = true;
+                opts.Providers.Add<GzipCompressionProvider>();
+                opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+                {
+                    "application/octet-stream"
+                });
+            });
+
+            builder.Services.AddSignalR(o =>
+            {
+                o.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+                o.KeepAliveInterval = TimeSpan.FromSeconds(10);
+                o.EnableDetailedErrors = false;
+            });
+
             builder.Services.AddControllersWithViews();
 
-            // Tipli HttpClient’lar
-            builder.Services.AddHttpClient<MetalsAnyProvider>(c =>
-            {
-                c.Timeout = TimeSpan.FromSeconds(8);
-                c.DefaultRequestHeaders.UserAgent.ParseAdd("SeriGold/1.0 (+serigold)");
-            });
-            builder.Services.AddHttpClient<ErApiFxProvider>(c =>
-            {
-                c.Timeout = TimeSpan.FromSeconds(8);
-                c.DefaultRequestHeaders.UserAgent.ParseAdd("SeriGold/1.0 (+serigold)");
-            });
-            builder.Services.AddHttpClient<BinanceFxProvider>(c =>
-            {
-                c.Timeout = TimeSpan.FromSeconds(8);
-                c.DefaultRequestHeaders.UserAgent.ParseAdd("SeriGold/1.0 (+serigold)");
-            });
+            // Providers
+            builder.Services.AddHttpClient<HaremAltinProvider>();
+            builder.Services.AddHttpClient<TruncgilFxProvider>();
+            builder.Services.AddHttpClient<FastForexProvider>();
 
-            // IRateProvider kayıtları
-            builder.Services.AddSingleton<IRateProvider>(sp => sp.GetRequiredService<MetalsAnyProvider>());
-            builder.Services.AddSingleton<IRateProvider>(sp => sp.GetRequiredService<BinanceFxProvider>()); // canlı USD/TRY
-            builder.Services.AddSingleton<IRateProvider>(sp => sp.GetRequiredService<ErApiFxProvider>());
-
+            builder.Services.AddTransient<IRateProvider, FastForexProvider>();  // saniyelik FX
+            builder.Services.AddTransient<IRateProvider, TruncgilFxProvider>(); // serbest piyasa çıpası + yedek
+            builder.Services.AddTransient<IRateProvider, HaremAltinProvider>(); // altın + sarrafiye
+            builder.Services.AddTransient<IRateProvider, SerbestFxProvider>();
             builder.Services.AddHostedService<RateEngine>();
 
             builder.Services.AddCors(o => o.AddPolicy("any", p => p
@@ -52,13 +58,22 @@ namespace SeriGold.WebUI
             }
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
+            app.UseResponseCompression();
+
+            var provider = new FileExtensionContentTypeProvider();
+            provider.Mappings[".webmanifest"] = "application/manifest+json";
+            app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = provider });
+
             app.UseRouting();
             app.UseCors("any");
             app.UseAuthorization();
 
             app.MapHub<RatesHub>("/ratesHub");
-            app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
+            app.MapControllers();
+
+            app.MapControllerRoute(
+                name: "default",
+                pattern: "{controller=Home}/{action=Index}/{id?}");
 
             app.Run();
         }

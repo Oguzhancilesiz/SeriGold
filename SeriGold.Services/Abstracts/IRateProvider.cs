@@ -12,3 +12,4 @@ namespace SeriGold.Services.Abstracts
         Task<IReadOnlyList<RateTick>> GetAsync(CancellationToken ct = default);
     }
 }
+

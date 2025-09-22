@@ -14,44 +14,45 @@
         if (toTop) toTop.classList.toggle('show', y > 250);
     }
 
-    // Aktif menü (daha sağlam)
-    // Aktif menü (path + hash bilinci, hem üst hem alt menü)
+    // Aktif menü (üst ve alt)
     function markActiveNav() {
         const norm = (p) => {
             p = (p || '').replace(/\/+$/, '').toLowerCase();
             if (p === '') p = '/';
-            // /Home/Index'i köke eşitle
             if (p === '/home' || p === '/home/index') return '/';
             return p;
         };
 
         const here = new URL(location.href);
         const herePath = norm(here.pathname);
-        const hereHash = (here.hash || '').toLowerCase(); // ör. "#about"
+        const hereHash = (here.hash || '').toLowerCase();
 
-        // Hem desktop üst menü hem mobil alt menü
         const links = document.querySelectorAll('.sg-nav .nav-link, .sg-bottomnav .nav-link');
-
         links.forEach(a => {
             let active = false;
             try {
                 const url = new URL(a.href, location.origin);
                 const linkPath = norm(url.pathname);
                 const linkHash = (url.hash || '').toLowerCase();
-
                 if (linkPath === herePath) {
-                    // Sayfalar aynıysa: hash varsa sadece aynı hash'li link aktif
-                    // Hash yoksa yalnızca hash'siz link aktif
                     active = hereHash ? (linkHash === hereHash) : !linkHash;
-                } else {
-                    active = false;
                 }
-            } catch (_) { /* boş */ }
-
+            } catch (_) { }
             a.classList.toggle('active', active);
         });
-    }
 
+        // Alt tab bar ink (cafcaflı vurgu)
+        const bar = document.querySelector('.sg-bottomnav');
+        const ink = bar?.querySelector('.bn-ink');
+        if (bar && ink) {
+            const act = bar.querySelector('.bn-item.active') || bar.querySelector('.bn-item');
+            if (!act) return;
+            const items = [...bar.querySelectorAll('.bn-item')];
+            const idx = Math.max(0, items.indexOf(act));
+            // 4 kolon: her item genişliği ~25%.
+            ink.style.transform = `translateX(${idx * 100}%)`;
+        }
+    }
 
     // Tooltips
     function initTooltips() {
@@ -83,17 +84,25 @@
         btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 
-    // Tema butonu
+    // Tema butonu + theme-color meta
     function wireThemeButton() {
         const btn = document.getElementById('themeBtn');
         const icon = document.getElementById('themeIcon');
         const text = document.getElementById('themeText');
+        const meta = document.getElementById('themeColorMeta');
         if (!btn || !icon || !text) return;
 
         const applyUi = () => {
             const t = html.getAttribute('data-theme') || 'seridoviz-dark';
-            if (t === 'seridoviz-dark') { icon.className = 'bi bi-moon-stars'; text.textContent = 'Koyu'; }
-            else { icon.className = 'bi bi-brightness-high'; text.textContent = 'Açık'; }
+            if (t === 'seridoviz-dark') {
+                icon.className = 'bi bi-moon-stars';
+                text.textContent = 'Koyu';
+                meta && (meta.content = '#0b1621');
+            } else {
+                icon.className = 'bi bi-brightness-high';
+                text.textContent = 'Açık';
+                meta && (meta.content = '#f6f8fc');
+            }
         };
 
         btn.addEventListener('click', () => {
@@ -103,13 +112,12 @@
             try { localStorage.setItem(storageKey, next); } catch (_) { }
             applyUi();
         });
-
         applyUi();
     }
 
-    // Mobil: linke tıklayınca menü kapansın
+    // (Opsiyonel) collapse nav kapama — element yoksa atlar
     function closeNavOnClick() {
-        const nav = document.getElementById('mainNav');
+        const nav = document.getElementById('mainNav'); // yoksa sorun değil
         if (!nav || !window.bootstrap) return;
         const bs = new bootstrap.Collapse(nav, { toggle: false });
         nav.querySelectorAll('a.nav-link').forEach(a => a.addEventListener('click', () => bs.hide()));
@@ -129,12 +137,10 @@
         });
     }
 
-    // Basit sayfa yükleyici API (+ dönen metinler + MAX süre)
+    // PageLoader (güncel)
     const PageLoader = (() => {
         const el = document.getElementById('pageLoader');
         const text = el ? el.querySelector('#pageLoaderText') : null;
-
-        // İstersen burayı düzenle
         let msgs = [
             'Güncel kurlar yükleniyor…',
             'Veri alınıyor…',
@@ -143,40 +149,23 @@
             'Bağlantı kuruluyor…',
             'Canlı yayın başlıyor…'
         ];
-
-        let i = 0, rotTimer = null;
-        let maxTimer = null;
-        let defaultMaxMs = 3000; // ⬅️ maksimum görünme süresi (3 sn)
+        let i = 0, rotTimer = null, maxTimer = null;
+        let defaultMaxMs = 3000;
 
         const render = () => { if (text) text.textContent = msgs[i % msgs.length]; i++; };
 
-        // show: PageLoader.show(), PageLoader.show(5000) veya PageLoader.show({max:5000, messages:[...]})
         const show = (opts) => {
             if (!el) return;
-
-            // Opsiyonel parametreler
             let maxMs = defaultMaxMs;
             if (typeof opts === 'number') maxMs = opts;
             else if (opts && typeof opts === 'object') {
                 if (Array.isArray(opts.messages) && opts.messages.length) { msgs = opts.messages.slice(); i = 0; }
                 if (Number.isFinite(opts.max)) maxMs = opts.max;
             }
-
-            // UI
-            el.hidden = false;
-            el.classList.add('show');
-
-            // Dönen metinler
-            i = 0;
-            render();
-            clearInterval(rotTimer);
-            rotTimer = setInterval(render, 1400);
-
-            // MAX süre
-            clearTimeout(maxTimer);
-            maxTimer = setTimeout(hide, Math.max(0, maxMs));
+            el.hidden = false; el.classList.add('show');
+            i = 0; render(); clearInterval(rotTimer); rotTimer = setInterval(render, 1400);
+            clearTimeout(maxTimer); maxTimer = setTimeout(hide, Math.max(0, maxMs));
         };
-
         const hide = () => {
             if (!el) return;
             el.classList.remove('show');
@@ -184,21 +173,14 @@
             clearInterval(rotTimer); rotTimer = null;
             clearTimeout(maxTimer); maxTimer = null;
         };
-
-        const setMessages = (arr) => {
-            if (Array.isArray(arr) && arr.length) { msgs = arr.slice(); i = 0; render(); }
-        };
-
-        const setMax = (ms) => {
-            if (Number.isFinite(ms) && ms >= 0) defaultMaxMs = ms;
-        };
+        const setMessages = (arr) => { if (Array.isArray(arr) && arr.length) { msgs = arr.slice(); i = 0; render(); } };
+        const setMax = (ms) => { if (Number.isFinite(ms) && ms >= 0) defaultMaxMs = ms; };
 
         return { show, hide, setMessages, setMax };
     })();
     window.PageLoader = PageLoader;
 
-
-    // İlk tema tercih
+    // Tema tercih başlat
     function initPreferredTheme() {
         try {
             const saved = localStorage.getItem(storageKey);
@@ -207,7 +189,7 @@
         } catch (_) { }
     }
 
-    // Reveal animasyonu
+    // Reveal
     function initReveal() {
         const els = [...document.querySelectorAll('.sg-card, .reveal, [data-glow]')];
         if (!('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('show')); return; }
@@ -219,7 +201,7 @@
         els.forEach(e => { e.classList.add('reveal'); io.observe(e); });
     }
 
-    // Tilt efekti
+    // Tilt
     function initTilt() {
         const els = document.querySelectorAll('.tilt');
         els.forEach(el => {
@@ -238,7 +220,7 @@
         });
     }
 
-    // Ambient ($ € ₺ Au) üret
+    // Ambient ($ € ₺ Au)
     function initAmbient() {
         const host = document.querySelector('.sg-ambient');
         if (!host) return;
@@ -254,7 +236,8 @@
             host.appendChild(s);
         }
     }
-    // ——— Yasal Uyarı Bant (dismiss + kalıcılık) ———
+
+    // Yasal Uyarı Bant kalıcılık
     function initLegalNoticeBar() {
         const key = 'seridoviz.legal.v1';
         const dismissed = localStorage.getItem(key) === '1';
@@ -272,12 +255,10 @@
         }
     }
 
-    // ——— Tablo altına mini uyarı enjekte (Döviz & Index) ———
+    // Tablo altına mini uyarı enjekte
     function initLegalInlineForRates() {
         const anchors = [
-            // Döviz sayfasındaki iki büyük kart bloğunun altına koy
             '.col-lg-6 .sg-card.box.p-3.h-100:last-child',
-            // Index kahraman kartı altı
             '#home .sg-card.p-3.gold-border'
         ];
         anchors.forEach(sel => {
@@ -286,18 +267,15 @@
             if (host.querySelector('.legal-inline')) return;
             const p = document.createElement('p');
             p.className = 'legal-inline d-flex align-items-center gap-2';
-            p.innerHTML = '<i class="bi bi-shield-exclamation"></i> ' +
-                'Paylaşılan fiyatlar bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.';
+            p.innerHTML = '<i class="bi bi-shield-exclamation"></i> Paylaşılan fiyatlar bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.';
             host.appendChild(p);
         });
     }
 
-    // ——— İlk ziyarette bir kere gösterilen toast (opsiyonel) ———
+    // İlk ziyarette bir kere gösterilen toast
     function initLegalToastOnce() {
         const key = 'seridoviz.legal.toast.v1';
         if (localStorage.getItem(key) === '1') return;
-
-        // Toast container
         let cont = document.querySelector('.toast-container');
         if (!cont) {
             cont = document.createElement('div');
@@ -305,29 +283,21 @@
             cont.style.zIndex = '1080';
             document.body.appendChild(cont);
         }
-
         cont.insertAdjacentHTML('beforeend', `
-  <div id="legalToast" class="toast toast-seri align-items-center" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="6000">
-    <div class="toast-header">
-      <i class="bi bi-bell me-2"></i>
-      <strong class="me-auto">Bilgilendirme</strong>
-      <small>Şimdi</small>
-      <button type="button" class="btn-close ms-2 mb-1" data-bs-dismiss="toast" aria-label="Kapat"></button>
-    </div>
-    <div class="toast-body">
-      Paylaşılan fiyatlar bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.
-    </div>
-  </div>`);
-
-        // Gösterim tetikleyici: küçük bir gecikme veya kurlar geldiğinde
+      <div id="legalToast" class="toast toast-seri align-items-center" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="6000">
+        <div class="toast-header">
+          <i class="bi bi-bell me-2"></i>
+          <strong class="me-auto">Bilgilendirme</strong>
+          <small>Şimdi</small>
+          <button type="button" class="btn-close ms-2 mb-1" data-bs-dismiss="toast" aria-label="Kapat"></button>
+        </div>
+        <div class="toast-body">Paylaşılan fiyatlar bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.</div>
+      </div>`);
         const t = document.getElementById('legalToast');
         if (!t) return;
         const toast = new bootstrap.Toast(t);
         setTimeout(() => toast.show(), 900);
-
-        t.addEventListener('hidden.bs.toast', () => {
-            try { localStorage.setItem(key, '1'); } catch (_) { }
-        });
+        t.addEventListener('hidden.bs.toast', () => { try { localStorage.setItem(key, '1'); } catch (_) { } });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -347,13 +317,15 @@
         initLegalInlineForRates();
         initLegalToastOnce();
     });
-    document.addEventListener('click', (e) => {
-        const a = e.target.closest('a[href^="#"]');
-        if (!a) return;
-        // Anchor hedefi varsa, scroll sonrası aktifliği tazele
-        setTimeout(() => markActiveNav(), 50);
-    }, { passive: true });
-    window.addEventListener('hashchange', markActiveNav, { passive: true });
 
+    document.addEventListener('click', (e) => {
+        const a = e.target.closest('a.nav-link');
+        if (!a) return;
+        // Alt tab ink gecikmesiz kaydır
+        setTimeout(() => markActiveNav(), 20);
+    }, { passive: true });
+
+    window.addEventListener('hashchange', markActiveNav, { passive: true });
     window.addEventListener('scroll', handleScroll, { passive: true });
+
 })();

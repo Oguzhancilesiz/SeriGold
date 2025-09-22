@@ -9,11 +9,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
-
     <title>@title</title>
     <meta name="description" content="@desc" />
-    <meta name="theme-color" content="#0b1621" />
-
+    <meta name="theme-color" id="themeColorMeta" content="#0b1621" />
 
     <!-- Favicon kit -->
     <link rel="icon" href="~/favicon/favicon.ico" sizes="any">
@@ -23,22 +21,8 @@
     <link rel="manifest" href="~/favicon/site.webmanifest">
     <link rel="mask-icon" href="~/logo.png" color="#d4af37">
     <meta name="msapplication-TileColor" content="#0b1621">
-    <!-- Var olan theme-color meta’nı şu şekilde ID’li kullan: -->
-    <meta name="theme-color" id="themeColorMeta" content="#0b1621">
 
-    <!-- Open Graph -->
-    <meta property="og:site_name" content="Seri Döviz" />
-    <meta property="og:title" content="@title" />
-    <meta property="og:description" content="@desc" />
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="tr_TR" />
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="@title" />
-    <meta name="twitter:description" content="@desc" />
-
-    <!-- Critical theme bootstrap (FOUT önleme) -->
+    <!-- FOUT önleme: kaydedilmiş tema uygulanır -->
     <script>
         try {
           const k='seridoviz.theme';
@@ -55,7 +39,7 @@
     @RenderSection("HeadMeta", required: false)
 </head>
 <body class="sg-body">
-    <!-- Ambient uzay/ikon kayma efekti -->
+    <!-- Ambient efekt -->
     <div class="sg-ambient" aria-hidden="true"></div>
 
     <!-- Sayfa yükleyici -->
@@ -66,18 +50,13 @@
         </div>
     </div>
 
-    <!-- Sabit üst menü -->
+    <!-- Üst Menü -->
     <header class="sg-navbar fixed-top">
         <nav class="navbar navbar-expand-lg" aria-label="Ana menü">
-            <div class="container-xxl">
-                <a class="navbar-brand d-flex align-items-center gap-2" asp-controller="Home" asp-action="Index">
-                    <img src="~/logo.png" alt="Seri Döviz" height="80" />
-                </a>
-
-
-                <!-- MENÜ LİNKLERİ: sadece masaüstü -->
-                <div class="collapse navbar-collapse d-none d-lg-flex" id="mainNav">
-                    <ul class="navbar-nav ms-lg-4 me-auto sg-nav">
+            <div class="container-xxl sg-navgrid">
+                <!-- SOL: Menü -->
+                <div class="sg-left d-none d-lg-flex">
+                    <ul class="navbar-nav sg-nav">
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="Index">Ana Sayfa</a>
                         </li>
@@ -93,22 +72,32 @@
                     </ul>
                 </div>
 
-                <!-- SAĞ: tema + kurlar ikonu (mobilde de görünür) -->
-                <div class="d-flex align-items-center gap-2 ms-auto">
-                    <button id="themeBtn" class="btn btn-gold-outline btn-sm d-flex align-items-center gap-1" type="button" data-ripple>
-                        <i class="bi bi-moon-stars" id="themeIcon" aria-hidden="true"></i><span id="themeText">Koyu</span>
+                <!-- ORTA: Logo (büyük ve tam ortalı) -->
+                <a class="navbar-brand sg-brand center d-flex align-items-center justify-content-center"
+                   asp-controller="Home" asp-action="Index" aria-label="Seri Döviz Ana Sayfa">
+                    <span class="brand-ring" aria-hidden="true"></span>
+                    <img class="brand-logo" src="~/logo.png" alt="Seri Döviz" />
+                </a>
+
+                <!-- SAĞ: Aksiyonlar -->
+                <div class="sg-right d-flex align-items-center justify-content-end gap-2">
+                    <button id="themeBtn" class="btn btn-gold-outline btn-md d-flex align-items-center gap-2" type="button" data-ripple>
+                        <i class="bi" id="themeIcon" aria-hidden="true"></i>
+                        <span id="themeText" class="d-none d-sm-inline"></span>
                     </button>
-                    <a class="icon-btn" asp-controller="Home" asp-action="Doviz" title="Kurlar" data-bs-toggle="tooltip" data-bs-title="Canlı Kurlar" data-ripple>
+                    <a class="icon-btn lg" asp-controller="Home" asp-action="Doviz" title="Kurlar" data-bs-toggle="tooltip" data-bs-title="Canlı Kurlar" data-ripple>
                         <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
                     </a>
                 </div>
             </div>
+
+            <!-- Alt ince parlama çizgisi -->
+            <div class="nav-glow" aria-hidden="true"></div>
         </nav>
     </header>
 
-
     <!-- İçerik -->
-    <main class="sg-main mt-5">
+    <main class="sg-main">
         <!-- Yasal Uyarı – İnce Bant -->
         <div id="legalNoticeBar" class="notice-bar" role="alert" aria-live="polite">
             <div class="container-xxl d-flex align-items-center gap-3 py-2">
@@ -122,26 +111,22 @@
 
         @RenderBody()
     </main>
+
+    <!-- Alt Mobil Tab Bar -->
     <nav class="sg-bottomnav d-lg-none" aria-label="Alt gezinti">
         <a class="bn-item nav-link" asp-controller="Home" asp-action="Index" data-ripple>
-            <i class="bi bi-house"></i>
-            <span>Ana</span>
+            <i class="bi bi-house"></i><span>Ana</span>
         </a>
-
         <a class="bn-item nav-link" asp-controller="Home" asp-action="Doviz" data-ripple>
-            <i class="bi bi-graph-up-arrow"></i>
-            <span>Kurlar</span>
+            <i class="bi bi-graph-up-arrow"></i><span>Kurlar</span>
         </a>
-
         <a class="bn-item nav-link" asp-controller="Home" asp-action="Index" asp-fragment="about" data-ripple>
-            <i class="bi bi-info-circle"></i>
-            <span>Hakkımızda</span>
+            <i class="bi bi-info-circle"></i><span>Hakkımızda</span>
         </a>
-
         <a class="bn-item nav-link" asp-controller="Home" asp-action="Index" asp-fragment="contact" data-ripple>
-            <i class="bi bi-telephone"></i>
-            <span>İletişim</span>
+            <i class="bi bi-telephone"></i><span>İletişim</span>
         </a>
+        <span class="bn-ink" aria-hidden="true"></span>
     </nav>
 
     <!-- Alt bölüm -->
@@ -157,28 +142,11 @@
                     </span>
                 </div>
                 <ul class="nav small">
-                    <li class="nav-item">
-                        <a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">
-                            Gizlilik Politikası
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#kvkkPolicyModal">
-                            KVKK
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#aydModal">
-                            Aydınlatma Metni
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#cookieModal">
-                            Çerez Kullanımı
-                        </a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Gizlilik Politikası</a></li>
+                    <li class="nav-item"><a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#kvkkPolicyModal">KVKK</a></li>
+                    <li class="nav-item"><a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#aydModal">Aydınlatma Metni</a></li>
+                    <li class="nav-item"><a class="nav-link px-2 text-muted" href="#" data-bs-toggle="modal" data-bs-target="#cookieModal">Çerez Kullanımı</a></li>
                 </ul>
-
             </div>
         </div>
     </footer>
@@ -192,28 +160,21 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     @RenderSection("Scripts", required: false)
 
-    <!-- Gizlilik Politikası -->
+    <!-- Modals -->
     <div class="modal fade modal-seri" id="privacyModal" tabindex="-1" aria-labelledby="privacyLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 id="privacyLabel" class="modal-title">Gizlilik Politikası</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                </div>
+                <div class="modal-header"><h5 id="privacyLabel" class="modal-title">Gizlilik Politikası</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
                 <div class="modal-body">
                     <p><strong>Güncelleme:</strong> 12.09.2025</p>
                     <p><strong>Seri Döviz</strong> olarak, web sitemizi ve dijital kanallarımızı kullanırken kişisel verilerinizin gizliliğini ve güvenliğini önemsiyoruz. Bu politika; hangi verileri işlediğimizi, hangi amaçlarla kullandığımızı ve haklarınızı açıklar.</p>
-
-                    <h6>1) Veri Sorumlusu</h6>
-                    <p>Seri Döviz (\"Şirket\") — İletişim: <a href="mailto:info@seridoviz.com">info@seridoviz.com</a></p>
-
+                    <h6>1) Veri Sorumlusu</h6><p>Seri Döviz ("Şirket") — İletişim: <a href="mailto:info@seridoviz.com">info@seridoviz.com</a></p>
                     <h6>2) Toplanan Veriler</h6>
                     <ul>
                         <li><em>İletişim:</em> Ad, soyad, e-posta, telefon (form doldurursanız).</li>
-                        <li><em>Kullanım &amp; Teknik:</em> IP, tarayıcı bilgisi, cihaz/oturum verisi, sayfa etkileşimleri, çerez kimlikleri.</li>
+                        <li><em>Kullanım & Teknik:</em> IP, tarayıcı bilgisi, cihaz/oturum verisi, sayfa etkileşimleri, çerez kimlikleri.</li>
                         <li><em>İşlem Güvenliği:</em> günlük (log) kayıtları, hata kayıtları, güvenlik uyarıları.</li>
                     </ul>
-
                     <h6>3) Amaçlar</h6>
                     <ul>
                         <li>Siteyi çalıştırma, bakım ve güvenlik (performans, hata ayıklama, dolandırıcılık önleme).</li>
@@ -221,7 +182,6 @@
                         <li>Hizmet iyileştirmeleri ve istatistiksel analiz (toplam/anonim ölçümler).</li>
                         <li>Pazarlama iletileri sadece <strong>açık rızanız</strong> varsa.</li>
                     </ul>
-
                     <h6>4) Hukuki Sebepler (KVKK md.5)</h6>
                     <ul>
                         <li>Sözleşmenin kurulması/ifası (md.5/2-c),</li>
@@ -230,16 +190,11 @@
                         <li>Meşru menfaat (md.5/2-f),</li>
                         <li>Pazarlama/analitik için <strong>açık rıza</strong> (md.5/1), gerektiğinde.</li>
                     </ul>
-
                     <h6>5) Saklama Süreleri</h6>
                     <p>Mevzuatta öngörülen süreler saklı kalmak üzere; teknik loglar güvenlik ve denetim amaçlı makul sürelerle, iletişim kayıtları iş ilişkisinin gerektirdiği süre boyunca, analitik veriler ise anonimleştirilerek tutulur.</p>
-
                     <h6>6) Aktarım</h6>
                     <p>Altyapı/hosting, analitik, e-posta/iletişim hizmeti aldığımız tedarikçilere veriler aktarılabilir. Yurt dışına aktarım (örn. CDN, analitik sağlayıcı) söz konusu ise KVKK md.9 kapsamında gerekli korumalar sağlanır.</p>
-
-                    <h6>7) Çocukların Verileri</h6>
-                    <p>Hizmetlerimiz yetişkinler içindir; 18 yaş altından bilerek veri toplamıyoruz.</p>
-
+                    <h6>7) Çocukların Verileri</h6><p>Hizmetlerimiz yetişkinler içindir; 18 yaş altından bilerek veri toplamıyoruz.</p>
                     <h6>8) Haklarınız (KVKK md.11)</h6>
                     <ul>
                         <li>İşlenip işlenmediğini öğrenme,</li>
@@ -252,31 +207,20 @@
                         <li>Zarar halinde tazmin talep etme.</li>
                     </ul>
                     <p>Başvuru: <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a> • 30 gün içinde yanıtlanır.</p>
-
-                    <h6>9) Güvenlik</h6>
-                    <p>Uygun teknik ve idari tedbirler uygulanır (erişim kontrolü, şifreleme, iz kayıtları vb.).</p>
-
-                    <h6>10) Güncellemeler</h6>
-                    <p>Bu politika zaman zaman güncellenebilir. En güncel sürüm daima bu sayfada yayımlanır.</p>
+                    <h6>9) Güvenlik</h6><p>Uygun teknik ve idari tedbirler uygulanır (erişim kontrolü, şifreleme, iz kayıtları vb.).</p>
+                    <h6>10) Güncellemeler</h6><p>Bu politika zaman zaman güncellenebilir. En güncel sürüm daima bu sayfada yayımlanır.</p>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button>
-                </div>
+                <div class="modal-footer"><button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button></div>
             </div>
         </div>
     </div>
 
-    <!-- KVKK Politikası -->
     <div class="modal fade modal-seri" id="kvkkPolicyModal" tabindex="-1" aria-labelledby="kvkkLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 id="kvkkLabel" class="modal-title">KVKK Politikası</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                </div>
+                <div class="modal-header"><h5 id="kvkkLabel" class="modal-title">KVKK Politikası</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
                 <div class="modal-body">
                     <p><strong>Amaç:</strong> 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) ve bağlı mevzuata uygun şekilde kişisel verilerin işlenmesine ilişkin Şirket ilkelerini belirler.</p>
-
                     <h6>1) İlkelere Uyum</h6>
                     <ul>
                         <li><em>Hukuka ve dürüstlük kurallarına uygunluk</em></li>
@@ -285,89 +229,52 @@
                         <li><em>Amaçla bağlantılı, sınırlı ve ölçülü olma</em></li>
                         <li><em>Gerekli süre kadar muhafaza</em></li>
                     </ul>
-
-                    <h6>2) Özel Nitelikli Veriler</h6>
-                    <p>Özel nitelikli kişisel veriler kural olarak işlenmez. Zorunlu hallerde KVKK md.6 ve Kurul kararlarına uygun ek tedbirlerle işlenir.</p>
-
-                    <h6>3) Aydınlatma &amp; Rıza</h6>
-                    <p>Aydınlatma yükümlülüğü KVKK md.10’a göre yerine getirilir. Rıza gerektiren süreçlerde açık rıza alınır; rıza her zaman geri çekilebilir.</p>
-
-                    <h6>4) Veri Sahibi Başvuruları</h6>
-                    <p>Başvurular <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a> adresine yapılır; usule uygun başvurular en geç 30 gün içinde sonuçlandırılır.</p>
-
-                    <h6>5) Aktarım</h6>
-                    <p>Yurt içi/yurt dışı aktarım KVKK md.8-9 çerçevesinde; yeterli koruma, taahhütler ve gerekli izin/taahhütnameler sağlanarak yapılır.</p>
-
-                    <h6>6) Güvenlik Tedbirleri</h6>
-                    <p>Erişim yetkilendirmesi, en az ayrıcalık prensibi, ağ ve uygulama güvenliği, yedekleme, loglama, çalışan farkındalığı ve tedarikçi sözleşmeleri uygulanır.</p>
-
-                    <h6>7) Denetim ve Eğitim</h6>
-                    <p>Politikaya uyum düzenli olarak denetlenir; çalışanlara KVKK farkındalık eğitimleri verilir.</p>
-
-                    <h6>8) Yürürlük</h6>
-                    <p>Yönetim onayıyla yürürlüğe girer ve ihtiyaç halinde güncellenir.</p>
+                    <h6>2) Özel Nitelikli Veriler</h6><p>Özel nitelikli kişisel veriler kural olarak işlenmez. Zorunlu hallerde KVKK md.6 ve Kurul kararlarına uygun ek tedbirlerle işlenir.</p>
+                    <h6>3) Aydınlatma & Rıza</h6><p>Aydınlatma yükümlülüğü KVKK md.10’a göre yerine getirilir. Rıza gerektiren süreçlerde açık rıza alınır; rıza her zaman geri çekilebilir.</p>
+                    <h6>4) Veri Sahibi Başvuruları</h6><p>Başvurular <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a> adresine yapılır; usule uygun başvurular en geç 30 gün içinde sonuçlandırılır.</p>
+                    <h6>5) Aktarım</h6><p>Yurt içi/yurt dışı aktarım KVKK md.8-9 çerçevesinde; yeterli koruma, taahhütler ve gerekli izin/taahhütnameler sağlanarak yapılır.</p>
+                    <h6>6) Güvenlik Tedbirleri</h6><p>Erişim yetkilendirmesi, en az ayrıcalık prensibi, ağ ve uygulama güvenliği, yedekleme, loglama, çalışan farkındalığı ve tedarikçi sözleşmeleri uygulanır.</p>
+                    <h6>7) Denetim ve Eğitim</h6><p>Politikaya uyum düzenli olarak denetlenir; çalışanlara KVKK farkındalık eğitimleri verilir.</p>
+                    <h6>8) Yürürlük</h6><p>Yönetim onayıyla yürürlüğe girer ve ihtiyaç halinde güncellenir.</p>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button>
-                </div>
+                <div class="modal-footer"><button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button></div>
             </div>
         </div>
     </div>
 
-    <!-- Aydınlatma Metni (Web Ziyaretçisi) -->
     <div class="modal fade modal-seri" id="aydModal" tabindex="-1" aria-labelledby="aydLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 id="aydLabel" class="modal-title">Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                </div>
+                <div class="modal-header"><h5 id="aydLabel" class="modal-title">Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
                 <div class="modal-body">
                     <p><strong>Veri Sorumlusu:</strong> Seri Döviz — <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a></p>
-
-                    <h6>1) Amaç</h6>
-                    <p>Web sitemizi ziyaretiniz sırasında kişisel verileriniz; site güvenliği, ölçümleme/performans, talep ve şikâyetlerinize dönüş ve yasal yükümlülüklerimizin yerine getirilmesi amaçlarıyla işlenir.</p>
-
+                    <h6>1) Amaç</h6><p>Web sitemizi ziyaretiniz sırasında kişisel verileriniz; site güvenliği, ölçümleme/performans, talep ve şikâyetlerinize dönüş ve yasal yükümlülüklerimizin yerine getirilmesi amaçlarıyla işlenir.</p>
                     <h6>2) İşlenen Veri Kategorileri</h6>
                     <ul>
                         <li>İşlem Güvenliği (IP, log kayıtları, cihaz/tarayıcı bilgisi),</li>
                         <li>Pazarlama (çerez kimlikleri, sayfa etkileşimleri) — <em>açık rızaya tabi</em>,</li>
                         <li>İletişim (form gönderirseniz: ad-soyad, e-posta, telefon, mesaj).</li>
                     </ul>
-
                     <h6>3) Toplama Yöntemi ve Hukuki Sebepler</h6>
                     <ul>
                         <li>Elektronik ortamda otomatik yollarla (çerezler, loglar, formlar).</li>
                         <li>Hukuki sebepler: md.5/2-c (sözleşme), 5/2-ç (hukuki yükümlülük), 5/2-e (hakların tesisi), 5/2-f (meşru menfaat), pazarlama/analitik için md.5/1 (açık rıza).</li>
                     </ul>
-
-                    <h6>4) Aktarım</h6>
-                    <p>Barındırma, güvenlik, analitik ve iletişim tedarikçilerimize; yurt dışına aktarım gerekirse KVKK md.9’a uygun önlemlerle.</p>
-
-                    <h6>5) Haklarınız</h6>
-                    <p>KVKK md.11 kapsamındaki haklarınızı <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a> adresine başvurarak kullanabilirsiniz. Başvurularınız 30 gün içinde sonuçlandırılır.</p>
-
-                    <h6>6) Saklama</h6>
-                    <p>Veriler, amaç için gerekli süre kadar, mevzuattaki süreler saklı kalmak kaydıyla muhafaza edilir; süre sonunda silinir, yok edilir veya anonimleştirilir.</p>
+                    <h6>4) Aktarım</h6><p>Barındırma, güvenlik, analitik ve iletişim tedarikçilerimize; yurt dışına aktarım gerekirse KVKK md.9’a uygun önlemlerle.</p>
+                    <h6>5) Haklarınız</h6><p>KVKK md.11 kapsamındaki haklarınızı <a href="mailto:kvkk@seridoviz.com">kvkk@seridoviz.com</a> adresine başvurarak kullanabilirsiniz. Başvurularınız 30 gün içinde sonuçlandırılır.</p>
+                    <h6>6) Saklama</h6><p>Veriler, amaç için gerekli süre kadar, mevzuattaki süreler saklı kalmak kaydıyla muhafaza edilir; süre sonunda silinir, yok edilir veya anonimleştirilir.</p>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button>
-                </div>
+                <div class="modal-footer"><button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button></div>
             </div>
         </div>
     </div>
 
-    <!-- Çerez Kullanımı -->
     <div class="modal fade modal-seri" id="cookieModal" tabindex="-1" aria-labelledby="cookieLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 id="cookieLabel" class="modal-title">Çerez (Cookie) Politikası</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                </div>
+                <div class="modal-header"><h5 id="cookieLabel" class="modal-title">Çerez (Cookie) Politikası</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button></div>
                 <div class="modal-body">
-                    <p>Bu sitede çerezler; sitenin çalışması, güvenlik, tercihlerin hatırlanması ve performans &amp; analitik amaçlarıyla kullanılır.</p>
-
+                    <p>Bu sitede çerezler; sitenin çalışması, güvenlik, tercihlerin hatırlanması ve performans & analitik amaçlarıyla kullanılır.</p>
                     <h6>1) Çerez Türleri</h6>
                     <ul>
                         <li><strong>Zorunlu:</strong> Oturum, yük dengeleme, güvenlik. (devre dışı bırakılamaz)</li>
@@ -375,25 +282,397 @@
                         <li><strong>Performans/Analitik:</strong> Ziyaret ve kullanım istatistikleri (açık rıza ile).</li>
                         <li><strong>Pazarlama/Üçüncü Taraf:</strong> Yeniden pazarlama etiketleri (varsa ve açık rıza ile).</li>
                     </ul>
-
-                    <h6>2) Yönetim</h6>
-                    <p>Tarayıcı ayarlarından çerezleri yönetebilir/silebilirsiniz. Analitik/pazarlama çerezleri, onay verilmedikçe çalıştırılmaz.</p>
-
-                    <h6>3) Saklama Süreleri</h6>
-                    <p>Oturum çerezleri tarayıcı kapatılınca silinir; kalıcı çerezler amaçlarına göre makul sürelerle tutulur.</p>
-
-                    <h6>4) Üçüncü Taraflar</h6>
-                    <p>Analitik ve içerik dağıtımı için üçüncü taraf hizmet sağlayıcılar kullanılabilir; bu tarafların kendi gizlilik politikaları geçerlidir.</p>
-
-                    <h6>5) İletişim</h6>
-                    <p>Çerezlerle ilgili sorular için: <a href="mailto:info@seridoviz.com">info@seridoviz.com</a></p>
+                    <h6>2) Yönetim</h6><p>Tarayıcı ayarlarından çerezleri yönetebilir/silebilirsiniz. Analitik/pazarlama çerezleri, onay verilmedikçe çalıştırılmaz.</p>
+                    <h6>3) Saklama Süreleri</h6><p>Oturum çerezleri tarayıcı kapatılınca silinir; kalıcı çerezler amaçlarına göre makul sürelerle tutulur.</p>
+                    <h6>4) Üçüncü Taraflar</h6><p>Analitik ve içerik dağıtımı için üçüncü taraf hizmet sağlayıcılar kullanılabilir; bu tarafların kendi gizlilik politikaları geçerlidir.</p>
+                    <h6>5) İletişim</h6><p>Çerezlerle ilgili sorular için: <a href="mailto:info@seridoviz.com">info@seridoviz.com</a></p>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button>
-                </div>
+                <div class="modal-footer"><button class="btn btn-gold-outline" data-bs-dismiss="modal">Kapat</button></div>
             </div>
         </div>
     </div>
+    <!-- _Layout.cshtml : global rates script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
+
+    <script>
+        (function () {
+          // ======= AYARLAR =======
+          const API = { latest: '/api/rates/latest', hub: '/ratesHub' };
+          const IST = 'Europe/Istanbul';
+          const EPS = 1e-9;
+
+          // ======= YARDIMCILAR =======
+          const roundTo = (v, d) => { const f = 10 ** d; return Math.round((+v) * f) / f; };
+          const dp = (sym) => {
+            if (!sym) return 6;
+            if (sym === 'ONS' || sym === 'XAU/USD') return 1;
+            if (/GRAM|KG\(|GREMSE|ÇEYREK|YARIM|TAM|ATA|AYAR/.test(sym)) return 2;
+            if (/\/JPY$|\/HUF$|\/KRW$|\/IDR$/.test(sym)) return 3;
+            if (/\/TRY$|^TRY\//.test(sym)) return 4;
+            return 6;
+          };
+          const fmt = (v, sym) => v==null ? '—' : roundTo(v, dp(sym)).toLocaleString('tr-TR',{minimumFractionDigits:dp(sym),maximumFractionDigits:dp(sym)});
+          const pcent = (v) => { const n=Number(v); if(!isFinite(n)) return '0,00'; const d=Math.abs(n)<0.01?3:2;
+            const r=roundTo(n,d).toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}); return r==='-0,00'?'0,00':r; };
+          const mid = (b,a)=> (b==null&&a==null)?null:(b==null?+a:(a==null?+b:((+b)+(+a))/2));
+          const nowTR = ()=> new Date().toLocaleTimeString('tr-TR',{hour12:false,timeZone:IST});
+          const dayKey = ()=>{const f=new Intl.DateTimeFormat('tr-TR',{timeZone:IST,year:'numeric',month:'2-digit',day:'2-digit'});const [g,a,y]=f.format(new Date()).split('.');return `${y}-${a}-${g}`;};
+
+          // metal/sarrafiye tespit
+          const isMetal = (s)=> s==='XAU/USD' || /(GRAM|KG\(|GREMSE|ÇEYREK|YARIM|TAM|ATA|AYAR|XAG\/USD|XPT\/USD|XPD\/USD|GÜMÜŞ\/GRAM)/.test(s);
+          const isTryPair = (s)=> /\/TRY$|^TRY\//.test(s);
+
+          // ======= GLOBAL KALP: Shared bus =======
+          const Bus = {
+            listeners: new Set(),
+            on(fn){ this.listeners.add(fn); },
+            off(fn){ this.listeners.delete(fn); },
+            emit(payload){ for(const fn of this.listeners){ try{ fn(payload);}catch{} } }
+          };
+
+          // ======= FX KALİBRASYON (Dövizborsa’ya yakınlaştırma) =======
+          const FX_KEY = 'fx.anchor.usdtry'; // localStorage
+          const RatesFX = {
+            getAnchor(){ const v = localStorage.getItem(FX_KEY); return v? +v : null; },
+            setAnchor(v){ const n=Number(v); if(isFinite(n)&&n>0){ localStorage.setItem(FX_KEY,String(n)); toast(`FX anchor USD/TRY = ${n}`);} },
+            clearAnchor(){ localStorage.removeItem(FX_KEY); toast('FX anchor temizlendi'); },
+            // list: normalize edilmiş satırlar
+            calibrate(list){
+              const target = this.getAnchor(); if(!target) return list;
+              const rows = [...list];
+              const utry = rows.find(r=>r.symbol==='USD/TRY');
+              const curr = utry ? mid(utry.bid, utry.ask) : null;
+              if(!curr) return list;
+
+              const k = target / curr; // USD/TRY hedef ölçek
+              return rows.map(r=>{
+                if (isMetal(r.symbol)) return r; // ALTIN/SARRAFİYEye dokunma
+                if (!isTryPair(r.symbol)) return r; // TRY içermiyorsa dokunma
+
+                const m0 = mid(r.bid, r.ask);
+                const sp0 = (r.bid!=null && r.ask!=null) ? (+r.ask - +r.bid) : 0;
+
+                // spread'i de aynı oranda ölçekle
+                const m = /^TRY\//.test(r.symbol) ? (m0!=null? m0 / k : null) : (m0!=null? m0 * k : null);
+                const sp = /^TRY\//.test(r.symbol) ? sp0 / k : sp0 * k;
+                const half = sp/2;
+
+                const out = {...r};
+                if (m!=null) {
+                  out.bid = m - half;
+                  out.ask = m + half;
+                }
+                if (typeof r.prevClose === 'number' && isFinite(r.prevClose)) {
+                  out.prevClose = /^TRY\//.test(r.symbol) ? r.prevClose / k : r.prevClose * k;
+                }
+                return out;
+              });
+            }
+          };
+          window.RatesFX = RatesFX; // konsoldan ulaş
+
+          // Alt+D ile anchor gir
+          document.addEventListener('keydown', (e)=>{
+            if(e.altKey && (e.key==='d' || e.key==='D')){
+              const cur = RatesFX.getAnchor() ?? '';
+              const v = prompt('Dövizborsa USD/TRY (Satış) değeri:', cur);
+              if(v!=null && v.trim()){ RatesFX.setAnchor(v.trim()); }
+            }
+          });
+
+          // basit toast
+          function toast(msg){
+            try{
+              let n=document.getElementById('sgToast'); if(!n){ n=document.createElement('div'); n.id='sgToast';
+                n.style.cssText='position:fixed;z-index:99999;left:50%;bottom:18px;transform:translateX(-50%);padding:.5rem .75rem;border-radius:10px;background:#111c;color:#fff;border:1px solid #333;box-shadow:0 6px 24px rgba(0,0,0,.35);font:500 13px/1.3 system-ui,Segoe UI,Roboto';
+                document.body.appendChild(n);
+              }
+              n.textContent=msg; n.style.opacity='1'; setTimeout(()=>{ n.style.transition='opacity .4s'; n.style.opacity='0';},1600);
+            }catch{}
+          }
+
+          // ======= Normalize + yüzdelik hesap =======
+          function norm(list){
+            return (list||[]).map(x=>{
+              let bid = (x.bid ?? x.Bid ?? x.buy ?? x.Buy);
+              let ask = (x.ask ?? x.Ask ?? x.sell ?? x.Sell);
+              if (bid!=null && ask!=null && +ask < +bid){ const t=bid; bid=ask; ask=t; } // güvenlik
+              return {
+                symbol: x.symbol || x.Symbol || x.code || x.Code,
+                bid, ask,
+                change: (typeof x.change==='number'?+x.change:(typeof x.Change==='number'?+x.Change:null)),
+                prevClose: (typeof x.prevClose==='number'?+x.prevClose:(typeof x.PrevClose==='number'?+x.PrevClose:null)),
+                dir: (x.dir||x.Dir||null)
+              };
+            }).filter(x=>x.symbol);
+          }
+
+          // günlük base (fallback %)
+          const baseKey = 'rates.base.' + dayKey();
+          let baseMap = new Map(Object.entries(JSON.parse(localStorage.getItem(baseKey)||'{}')).map(([k,v])=>[k,+v]));
+          const saveBase = ()=> localStorage.setItem(baseKey, JSON.stringify(Object.fromEntries(baseMap)));
+
+          function enrich(arr, prevState){
+            let baseChanged=false;
+            for(const it of arr){
+              const sym = it.symbol;
+              const m = mid(it.bid,it.ask);
+              const pv = prevState.get(sym);
+
+              if (typeof it.change === 'number' && isFinite(it.change)){
+                it._delta = it.change;
+                it._dir = (it.dir==='down')?'down':(it._delta<0?'down':'up');
+              } else if (typeof it.prevClose === 'number' && isFinite(it.prevClose) && m!=null){
+                it._delta = ((m - it.prevClose)/it.prevClose)*100;
+                it._dir = it._delta < 0 ? 'down' : 'up';
+              } else {
+                let base = baseMap.get(sym);
+                if (base==null && m!=null && m>0){ baseMap.set(sym,m); base=m; baseChanged=true; }
+                it._delta = (base!=null && m!=null && Math.abs(base)>EPS) ? ((m-base)/base)*100 : (pv && typeof pv.delta==='number' ? pv.delta : 0);
+                it._dir = (pv && pv.v!=null && m!=null) ? (m >= pv.v ? 'up' : 'down') : (it._delta < 0 ? 'down' : 'up');
+              }
+
+              if (pv && pv.v!=null && m!=null && Math.abs(m - pv.v) > EPS){
+                it._pulse = (m >= pv.v) ? 'up' : 'down';
+                setTimeout(()=>{ try{ it._pulse = null; }catch{} }, 600);
+              }
+              if (m!=null) prevState.set(sym,{v:m,delta:it._delta,dir:it._dir});
+            }
+            if (baseChanged) saveBase();
+          }
+
+          // ======= Veri akışı (push + fallback pull) =======
+          const State = { prev: new Map(), lastPush: 0 };
+          function handlePayload(payload){
+            // 1) normalize
+            let arr = norm(payload);
+            // 2) FX'leri kalibre et (ALTIN/SARRAFİYE hariç)
+            arr = RatesFX.calibrate(arr);
+            // 3) enrich (% ve pulse)
+            const latest = new Map(); for(const r of arr) latest.set(r.symbol, r);
+            arr = [...latest.values()].sort((a,b)=>a.symbol.localeCompare(b.symbol));
+            enrich(arr, State.prev);
+
+            Bus.emit(arr);
+            State.lastPush = Date.now();
+          }
+
+          async function pull(){
+            try{ const r=await fetch(API.latest,{cache:'no-store'}); if(!r.ok) return;
+              const j=await r.json(); handlePayload(j);
+            }catch{}
+          }
+
+          // SignalR
+          (function startHub(){
+            if(!window.signalR) { pull(); return; }
+            const hub = new signalR.HubConnectionBuilder()
+              .withUrl(API.hub, { transport: signalR.HttpTransportType.WebSockets })
+              .withAutomaticReconnect({ nextRetryDelayInMilliseconds: c => Math.min(5000,(c.previousRetryCount+1)*1000) })
+              .configureLogging(signalR.LogLevel.Error)
+              .build();
+            hub.serverTimeoutInMilliseconds = 30000;
+            hub.keepAliveIntervalInMilliseconds = 10000;
+            hub.on('rates:update', handlePayload);
+            hub.onreconnected(()=>pull());
+            hub.start().catch(()=>{ /* sessiz */ });
+            pull();
+            setInterval(()=>{ if(Date.now()-State.lastPush>10000) pull(); }, 5000);
+            document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pull(); });
+          })();
+
+          // ======= TICKER (Ana sayfa için loader → canlı) =======
+          const loaderMsgs = ['Güncel kurlar yükleniyor…','Veri alınıyor…','Piyasa akışı hazırlanıyor…','Anlık fiyatlar geliyor…','Bağlantı kuruluyor…','Canlı yayın başlıyor…'];
+          let loadIdx=0, idxTickerTimer=null;
+          function startTickerRotator(){
+            const track=document.getElementById('idxTicker'); if(!track||idxTickerTimer) return;
+            const render=()=>{ const m1=loaderMsgs[loadIdx%loaderMsgs.length], m2=loaderMsgs[(loadIdx+1)%loaderMsgs.length];
+              track.innerHTML=`<span class="ticker__item"><span class="spinner-border spinner-border-sm"></span> <span>${m1}</span></span>`+
+                              `<span class="ticker__item"><span class="spinner-border spinner-border-sm"></span> <span>${m2}</span></span>`;
+              loadIdx=(loadIdx+1)%loaderMsgs.length;
+            };
+            render(); idxTickerTimer=setInterval(render,1400);
+          }
+          function stopTickerRotator(){ if(idxTickerTimer){ clearInterval(idxTickerTimer); idxTickerTimer=null; } }
+          startTickerRotator();
+
+          function renderHomeTicker(rowsMap){
+            const track=document.getElementById('idxTicker'); if(!track) return;
+            const top=['ALTIN/GRAM','XAU/USD','USD/KG(ALTIN)','EUR/KG(ALTIN)','GÜMÜŞ/GRAM','USD/TRY','EUR/TRY','EUR/USD','USD/JPY'];
+            const out=[];
+            for(const k of top){
+              const r = rowsMap.get(k); if(!r) continue;
+              const label = (k==='XAU/USD')?'ONS':k;
+              out.push({ label, value:(r.ask ?? r.bid), delta:r._delta });
+            }
+            if(!out.length) return;
+            stopTickerRotator();
+            const dbl=out.concat(out);
+            track.innerHTML=dbl.map(t=>`
+              <span class="ticker__item">
+                <span class="lbl">${t.label}</span>
+                <span class="val price ${t.delta>=0?'rise':'drop'}">${fmt(t.value,t.label)}</span>
+                <i class="${t.delta>=0?'bi bi-caret-up-fill rise':'bi bi-caret-down-fill drop'}"></i>
+                <small class="${t.delta>=0?'rise':'drop'}">%${pcent(t.delta)}</small>
+              </span>`).join('');
+          }
+
+          Bus.on(arr=>{
+            const map=new Map(arr.map(x=>[x.symbol,x]));
+            renderHomeTicker(map);
+            // Home VM
+            if (window.homeVm) window.homeVm.apply(arr);
+            // Doviz VM
+            if (window.dovizVm) window.dovizVm.apply(arr);
+          });
+
+          // ======= ANA SAYFA Vue (varsa) =======
+          (function mountHome(){
+            const el=document.getElementById('homeList'); if(!el) return;
+            window.homeVm = new Vue({
+              el:'#homeList',
+              data(){ return{
+                all:[], prev:new Map(), lastTs:'--:--:--',
+                favs:new Set(JSON.parse(localStorage.getItem('favSymbols')||'[]')),
+                q:'', favOnly:false
+              };},
+              computed:{
+                popularOrder(){ return ['USD/TRY','EUR/TRY','ALTIN/GRAM','XAU/USD','YENİ ÇEYREK','EUR/USD','USD/JPY','GÜMÜŞ/GRAM']; },
+                rows(){
+                  const q=(this.q||'').trim().toUpperCase();
+                  const dict=new Map(this.all.map(x=>[x.symbol,x]));
+                  const pinned=this.popularOrder.map(s=>dict.get(s)).filter(Boolean);
+                  const favs=[...this.favs].map(s=>dict.get(s)).filter(Boolean).filter(r=>!this.popularOrder.includes(r.symbol));
+                  const rest=this.all.filter(r=>!this.popularOrder.includes(r.symbol)&&!this.favs.has(r.symbol))
+                                     .sort((a,b)=>this.w(b.symbol)-this.w(a.symbol)||a.symbol.localeCompare(b.symbol));
+                  let out=[...pinned,...favs,...rest];
+                  if(this.favOnly) out=out.filter(r=>this.favs.has(r.symbol)||this.popularOrder.includes(r.symbol));
+                  if(q) out=out.filter(r=>(r.symbol||'').includes(q)||this.disp(r.symbol).includes(q));
+                  return out;
+                }
+              },
+              methods:{
+                disp(sym){ return sym==='XAU/USD'?'ONS':sym; },
+                w(sym){ if(/\/TRY$|^TRY\//.test(sym)) return 90; if(sym==='XAU/USD'||/GRAM|ÇEYREK|YARIM|TAM|ATA|GREMSE|AYAR/.test(sym)) return 80; if(/\/USD$|^USD\/|\/EUR$|^EUR\//.test(sym)) return 60; return 20; },
+                toggleFav(sym){ const s=new Set(this.favs); s.has(sym)?s.delete(sym):s.add(sym); this.favs=s; localStorage.setItem('favSymbols',JSON.stringify([...s])); },
+                isFav(sym){ return this.favs.has(sym); },
+                n(v,sym){ return fmt(v,this.disp(sym)); },
+                p(v){ return pcent(v); },
+                delta(r){ return (typeof r._delta==='number')?r._delta:0; },
+                dir(r){ return (r._dir==='down')?'down':'up'; },
+                pulseCls(r){ return r?(r._pulse==='down'?'flash-down':(r._pulse==='up'?'flash-up':'')):''; },
+                apply(list){
+                  const latest=new Map(); for(const r of list) latest.set(r.symbol,r);
+                  const arr=[...latest.values()].sort((a,b)=>a.symbol.localeCompare(b.symbol));
+                  this.all=arr; this.lastTs=nowTR();
+                }
+              }
+            });
+          })();
+
+          // ======= DÖVİZ SAYFASI Vue (varsa) =======
+          (function mountDoviz(){
+            const el=document.getElementById('dovizApp'); if(!el) return;
+            window.dovizVm = new Vue({
+              el:'#dovizApp',
+              data(){ return{
+                all:[], lastTs:'--:--:--',
+                favs:new Set(JSON.parse(localStorage.getItem('favSymbols')||'[]')),
+                convAmt:1, convPair:'EUR/TRY', convMode:'mid', convDir:false,
+                activeTab:'metals', fxTab:'TRY', qFx:'', fxFavOnly:false, dense:false,
+                loadMsgs:['Güncel kurlar yükleniyor…','Veri alınıyor…','Piyasa akışı hazırlanıyor…','Anlık fiyatlar geliyor…','Bağlantı kuruluyor…','Canlı yayın başlıyor…'],
+                loadIdx:0
+              };},
+              computed:{
+                loadMsg(){ return this.loadMsgs[this.loadIdx%this.loadMsgs.length]; },
+                nextLoadMsg(){ return this.loadMsgs[(this.loadIdx+1)%this.loadMsgs.length]; },
+                pairs(){ return Array.from(new Set(this.all.map(x=>x.symbol))).sort(); },
+                // Çevirici
+                convPairSplit(){ return (this.convPair||'').split('/'); },
+                convPairDisplay(){
+                  return this.convPairSplit[1] ? (this.convDir ? (this.convPairSplit[1]+'/'+this.convPairSplit[0]) : this.convPair) : (this.convPair||'');
+                },
+                convUnitRate(){
+                  const px=this.priceOf(this.convPair, this.convMode);
+                  if(px==null || px<=0) return null;
+                  return this.convDir? (1/px) : px;
+                },
+                convResult(){ const u=this.convUnitRate; if(u==null) return null; const a=Number(this.convAmt); if(!isFinite(a)) return null; return a*u; },
+                convModeLabel(){ return this.convMode==='mid'?'Orta':(this.convMode==='bid'?'Alış':'Satış'); },
+
+                // Ticker üst liste
+                topList(){
+                  const base=['ALTIN/GRAM','XAU/USD','USD/KG(ALTIN)','EUR/KG(ALTIN)','GÜMÜŞ/GRAM','USD/TRY','EUR/TRY','EUR/USD','USD/JPY'];
+                  const bySym=new Map(this.all.map(x=>[x.symbol,x]));
+                  const favs=[...this.favs].map(s=>bySym.get(s)).filter(Boolean);
+                  const baseItems=base.map(s=>bySym.get(s)).filter(Boolean);
+                  const uniq=[...new Map([...favs,...baseItems].map(r=>[r.symbol,r])).values()];
+                  return uniq.map(r=>({ label: r.symbol==='XAU/USD'?'ONS':r.symbol, value:(r.ask??r.bid), delta:this.delta(r) }));
+                },
+                tickerDoubled(){ return this.topList.concat(this.topList); },
+
+                // Tablo kaynakları
+                metals(){
+                  const order=['ALTIN/GRAM','ONS','USD/KG(ALTIN)','EUR/KG(ALTIN)','AYAR22/GRAM','AYAR14/GRAM','GÜMÜŞ/GRAM','XAG/USD','XPT/USD','XPD/USD'];
+                  const rows=this.all.map(r=> (r.symbol==='XAU/USD'? {...r,_disp:'ONS'} : {...r,_disp:r.symbol}));
+                  const dict=new Map(rows.map(x=>[x._disp,x]));
+                  return order.map(k=>dict.get(k)).filter(Boolean);
+                },
+                mint(){
+                  const names=['YENİ ÇEYREK','ESKİ ÇEYREK','YENİ YARIM','ESKİ YARIM','YENİ TAM','ESKİ TAM','YENİ ATA','ESKİ ATA','YENİ ATA5','ESKİ ATA5','YENİ GREMSE','ESKİ GREMSE'];
+                  const dict=new Map(this.all.filter(x=>names.includes(x.symbol)).map(x=>[x.symbol,x]));
+                  return names.map(n=>dict.get(n)).filter(Boolean);
+                },
+                        tabRows() {
+          return this.activeTab === 'metals' ? this.metals : this.mint;
+        },
+                // FX sekmeleri
+                fxTryFull(){ const q=(this.qFx||'').trim().toUpperCase(); let f=this.all.filter(x=>/\/TRY$/.test(x.symbol));
+                  if(this.fxFavOnly) f=f.filter(x=>this.isFav(x.symbol)); if(q) f=f.filter(x=>x.symbol.includes(q)); return f; },
+                fxUsdFull(){ const q=(this.qFx||'').trim().toUpperCase(); let f=this.all.filter(x=>/\/USD$|^USD\//.test(x.symbol));
+                  if(this.fxFavOnly) f=f.filter(x=>this.isFav(x.symbol)); if(q) f=f.filter(x=>x.symbol.includes(q)); return f; },
+                fxEur(){ const q=(this.qFx||'').trim().toUpperCase(); let f=this.all.filter(x=>/\/EUR$|^EUR\//.test(x.symbol));
+                  if(this.fxFavOnly) f=f.filter(x=>this.isFav(x.symbol)); if(q) f=f.filter(x=>x.symbol.includes(q)); return f; },
+                fxTabRows(){ return this.fxTab==='USD' ? this.fxUsdFull : (this.fxTab==='EUR' ? this.fxEur : this.fxTryFull); }
+              },
+              methods:{
+                // format/fav
+                n(v,sym){ return fmt(v,sym); }, p(v){ return pcent(v); },
+                toggleFav(sym){ const s=new Set(this.favs); s.has(sym)?s.delete(sym):s.add(sym); this.favs=s; localStorage.setItem('favSymbols',JSON.stringify([...s])); },
+                isFav(sym){ return this.favs.has(sym); },
+                // görsel durum
+                delta(r){ return (typeof r._delta==='number')?r._delta:0; },
+                dir(r){ return (r._dir==='down')?'down':'up'; },
+                pulseCls(r){ return r?(r._pulse==='down'?'flash-down':(r._pulse==='up'?'flash-up':'')):''; },
+                fmtSym(r){ return this.activeTab==='metals'?(r.symbol==='XAU/USD'?'ONS':r.symbol):r.symbol; },
+                // çevirici
+                priceOf(sym,mode){
+                  const r=this.all.find(x=>x.symbol===sym); if(!r) return null;
+                  const m=mid(r.bid,r.ask);
+                  if(mode==='bid') return (r.bid!=null)?+r.bid:(m!=null?m:null);
+                  if(mode==='ask') return (r.ask!=null)?+r.ask:(m!=null?m:null);
+                  return m;
+                },
+                copyConv(){
+                  try{
+                    const txt=this.convResult==null?'':`${fmt(this.convAmt,this.convPairSplit[0])} ${this.convPairSplit[0]} ≈ ${fmt(this.convResult,this.convPairDisplay)} ${this.convPairDisplay.split('/')[1]} (${this.convModeLabel})`;
+                    if(txt) navigator.clipboard.writeText(txt);
+                  }catch{}
+                },
+                // veri uygula
+                apply(list){
+                  const latest=new Map(); for(const r of list) latest.set(r.symbol,r);
+                  const arr=[...latest.values()].sort((a,b)=>a.symbol.localeCompare(b.symbol));
+                  if(!arr.find(x=>x.symbol===this.convPair) && arr.length) this.convPair=arr[0].symbol;
+                  this.all=arr; this.lastTs=nowTR();
+                }
+              }
+            });
+          })();
+
+        })();
+    </script>
 
 </body>
 </html>
