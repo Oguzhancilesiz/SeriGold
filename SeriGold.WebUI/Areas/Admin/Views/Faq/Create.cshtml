@@ -1,0 +1,82 @@
+﻿@model SeriGold.DTO.FaqAddDto
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "SSS Ekle";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a class="text-decoration-none" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Admin</a></li>
+            <li class="breadcrumb-item"><a class="text-decoration-none" asp-action="Index">SSS</a></li>
+            <li class="breadcrumb-item active">Ekle</li>
+        </ol>
+    </nav>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card card-glow">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-plus-lg text-warning"></i><strong>Yeni SSS</strong>
+            </div>
+            <div class="card-body">
+                <form method="post" class="row g-3" novalidate>
+                    @Html.AntiForgeryToken()
+
+                    <div class="col-md-2">
+                        <label asp-for="DisplayOrder" class="form-label">Sıra</label>
+                        <input asp-for="DisplayOrder" class="form-control" />
+                        <span class="text-danger small" asp-validation-for="DisplayOrder"></span>
+                    </div>
+                    <div class="col-md-10">
+                        <label asp-for="Question" class="form-label">Soru</label>
+                        <input asp-for="Question" class="form-control" />
+                        <span class="text-danger small" asp-validation-for="Question"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label asp-for="AnswerHtml" class="form-label mb-0">Cevap (HTML)</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" asp-for="IsActive" />
+                                <label class="form-check-label" asp-for="IsActive">Aktif</label>
+                            </div>
+                        </div>
+                        <textarea asp-for="AnswerHtml" class="form-control" rows="10" id="answer"></textarea>
+                        <span class="text-danger small" asp-validation-for="AnswerHtml"></span>
+                        <div class="form-text">Tam HTML kabul edilir. (Yalnızca admin erişiminde kullanın.)</div>
+                    </div>
+
+                    <div class="col-12 d-flex gap-2">
+                        <a class="btn btn-outline-secondary" asp-action="Index"><i class="bi bi-arrow-left me-1"></i>Geri</a>
+                        <button class="btn btn-warning"><i class="bi bi-save me-1"></i>Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canlı Önizleme -->
+    <div class="col-12 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header"><strong>Önizleme</strong></div>
+            <div class="card-body">
+                <div id="prev" class="prose small text-light"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function(){
+            const src = document.getElementById('answer');
+            const prev = document.getElementById('prev');
+            const render = () => prev.innerHTML = src.value || '<span class="text-secondary">İçerik yok</span>';
+            src?.addEventListener('input', render);
+            render();
+        })();
+    </script>
+}

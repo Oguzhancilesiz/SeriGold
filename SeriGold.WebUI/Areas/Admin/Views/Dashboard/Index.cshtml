@@ -1,0 +1,61 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+        </ol>
+    </nav>
+}
+
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
+        <div class="adm-card p-3 p-lg-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="adm-section-title">Hızlı İşlemler</div>
+                <div class="small text-secondary">Sık kullanılanlar</div>
+            </div>
+            <div class="row g-2">
+                <div class="col-6 col-md-3">
+                    <a class="btn w-100 btn-warning" asp-area="Admin" asp-controller="Settings" asp-action="Edit">
+                        <i class="bi bi-gear me-1"></i> Ayarlar
+                    </a>
+                </div>
+                <div class="col-6 col-md-3">
+                    <a class="btn w-100 btn-outline-light" asp-area="Admin" asp-controller="Services" asp-action="Index">
+                        <i class="bi bi-grid-3x3-gap me-1"></i> Hizmetler
+                    </a>
+                </div>
+                <div class="col-6 col-md-3">
+                    <a class="btn w-100 btn-outline-light" asp-area="Admin" asp-controller="Faq" asp-action="Index">
+                        <i class="bi bi-question-circle me-1"></i> SSS
+                    </a>
+                </div>
+                <div class="col-6 col-md-3">
+                    <a class="btn w-100 btn-outline-info" asp-area="" asp-controller="Home" asp-action="Index" target="_blank" rel="noopener">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Site
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="adm-card p-3 p-lg-4">
+            <div class="adm-section-title mb-2">Durum</div>
+            <ul class="list-unstyled m-0 small text-secondary">
+                <li class="d-flex justify-content-between py-1 border-bottom border-secondary-subtle">
+                    <span>Rol</span><span class="text-light">Admin</span>
+                </li>
+                <li class="d-flex justify-content-between py-1 border-bottom border-secondary-subtle">
+                    <span>Bootstrap</span><span class="text-light">v5</span>
+                </li>
+                <li class="d-flex justify-content-between py-1">
+                    <span>Tema</span><span class="text-light">Dark</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

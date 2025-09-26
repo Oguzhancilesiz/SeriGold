@@ -29,4 +29,8 @@
     <ProjectReference Include="..\SeriGold.Services\SeriGold.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Areas\Admin\Data\" />
+  </ItemGroup>
+
 </Project>

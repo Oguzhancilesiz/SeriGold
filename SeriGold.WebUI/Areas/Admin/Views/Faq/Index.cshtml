@@ -1,0 +1,280 @@
+﻿@model IEnumerable<SeriGold.DTO.FaqDto>
+@using System.Text.RegularExpressions
+@using System.Text
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "SSS";
+    var ordered = Model.OrderBy(x => x.DisplayOrder).ToList();
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a class="text-decoration-none" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Admin</a></li>
+            <li class="breadcrumb-item active">SSS</li>
+        </ol>
+    </nav>
+}
+
+@if (TempData["ok"] is string okMsg)
+{
+    <div class="alert alert-success"><i class="bi bi-check-circle me-1"></i>@okMsg</div>
+}
+
+<!-- sadece token almak için görünmez form -->
+<form id="reorderTokenForm" class="d-none">@Html.AntiForgeryToken()</form>
+
+<div class="card card-glow">
+    <div class="card-header d-flex flex-column flex-md-row gap-2 align-items-md-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-question-circle text-warning"></i>
+            <strong>Sık Sorulan Sorular</strong>
+            <span class="badge text-bg-secondary">@ordered.Count</span>
+        </div>
+        <div class="d-flex gap-2">
+            <input id="q" class="form-control form-control-sm" placeholder="Ara: soru veya içerik..." />
+            <a class="btn btn-sm btn-warning" asp-action="Create"><i class="bi bi-plus-lg me-1"></i>Yeni</a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-dark table-striped table-hover align-middle table-sm mb-0" id="tbl">
+            <thead class="small text-secondary">
+                <tr>
+                    <th style="width:80px">Sıra</th>
+                    <th>Soru & Özet</th>
+                    <th style="width:120px">Durum</th>
+                    <th style="width:160px" class="text-end">İşlem</th>
+                </tr>
+            </thead>
+            <tbody id="faqBody">
+                @foreach (var x in ordered)
+                {
+                    var plain = Regex.Replace(x.AnswerHtml ?? "", "<.*?>", string.Empty);
+                    var shortText = plain.Length > 140 ? plain.Substring(0, 140) + "…" : plain;
+                    var html64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(x.AnswerHtml ?? ""));
+
+                    <tr draggable="true"
+                        data-id="@x.Id"
+                        data-search="@($"{x.DisplayOrder} {x.Question} {plain}".ToLowerInvariant())"
+                        class="drow">
+                        <td class="align-middle">
+                            <span class="handle" title="Sürükle">
+                                <i class="bi bi-grip-vertical me-1"></i>
+                            </span>
+                            <span class="badge text-bg-dark border order-badge">@x.DisplayOrder</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold d-flex align-items-center gap-2">
+                                @x.Question
+                                <button type="button"
+                                        class="btn btn-xs btn-outline-light border-0 px-2 py-0"
+                                        data-bs-toggle="tooltip" title="Cevabı görüntüle"
+                                        data-title="@x.Question"
+                                        data-html64="@html64"
+                                        onclick="showFaqHtml(this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <div class="text-secondary small text-truncate" style="max-width: 740px">@shortText</div>
+                        </td>
+                        <td>
+                            @if (x.IsActive)
+                            {
+                                <span class="badge text-bg-success">Aktif</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-secondary">Pasif</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group">
+                                <a class="btn btn-sm btn-outline-info" asp-action="Edit" asp-route-id="@x.Id" data-bs-toggle="tooltip" title="Düzenle">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form method="post" asp-action="Delete" asp-route-id="@x.Id" asp-antiforgery="true"
+                                      onsubmit="return confirm('Silinsin mi?')">
+                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Sil">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- HTML Önizleme Modal -->
+<div class="modal fade" id="faqModal" tabindex="-1" aria-labelledby="faqModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-body-tertiary">
+            <div class="modal-header">
+                <h5 class="modal-title" id="faqModalLabel">Cevap</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <div id="faqModalBody" class="prose"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Head {
+    <style>
+        .drow {
+            user-select: none;
+        }
+
+            .drow.dragging {
+                opacity: .6;
+            }
+
+            .drow.over {
+                outline: 2px dashed rgba(255,193,7,.6);
+            }
+
+        .handle {
+            cursor: grab;
+        }
+
+            .handle:active {
+                cursor: grabbing;
+            }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            // arama
+            const q = document.getElementById('q');
+            const tbody = document.getElementById('faqBody');
+            const rows = () => Array.from(tbody.querySelectorAll('tr.drow'));
+
+            q?.addEventListener('input', function () {
+                const t = (this.value || '').toLowerCase();
+                rows().forEach(r => {
+                    const hay = r.getAttribute('data-search') || r.innerText.toLowerCase();
+                    r.style.display = hay.includes(t) ? '' : 'none';
+                });
+            });
+
+            // tooltips
+            const tList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tList.map(el => new bootstrap.Tooltip(el));
+
+            // drag & drop
+            let dragEl = null;
+
+            tbody.addEventListener('dragstart', (e) => {
+                const tr = e.target.closest('tr.drow');
+                if (!tr) return;
+                dragEl = tr;
+                tr.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', tr.dataset.id);
+            });
+
+            tbody.addEventListener('dragend', (e) => {
+                const tr = e.target.closest('tr.drow');
+                if (tr) tr.classList.remove('dragging');
+                rows().forEach(r => r.classList.remove('over'));
+                dragEl = null;
+            });
+
+            tbody.addEventListener('dragover', (e) => {
+                if (!dragEl) return;
+                e.preventDefault();
+                const tr = e.target.closest('tr.drow');
+                if (!tr || tr === dragEl) return;
+
+                tr.classList.add('over');
+                const rect = tr.getBoundingClientRect();
+                const before = (e.clientY - rect.top) < rect.height / 2;
+                if (before) {
+                    tbody.insertBefore(dragEl, tr);
+                } else {
+                    tbody.insertBefore(dragEl, tr.nextSibling);
+                }
+            });
+
+            tbody.addEventListener('dragleave', (e) => {
+                const tr = e.target.closest('tr.drow');
+                if (tr) tr.classList.remove('over');
+            });
+
+            tbody.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                rows().forEach(r => r.classList.remove('over'));
+                // yeni sırayı hesapla ve rozetleri güncelle
+                const payload = rows()
+                    .filter(r => r.style.display !== 'none')
+                    .map((r, idx) => {
+                        const badge = r.querySelector('.order-badge');
+                        if (badge) badge.textContent = (idx + 1);
+                        return { id: r.dataset.id, displayOrder: (idx + 1) };
+                    });
+
+                await saveOrder(payload);
+            });
+
+            async function saveOrder(items) {
+                try {
+                    const token = document.querySelector('#reorderTokenForm input[name="__RequestVerificationToken"]')?.value || "";
+                    const res = await fetch('@Url.Action("Reorder", "Faq", new { area = "Admin" })', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify(items)
+                    });
+                    if (!res.ok) throw new Error('Kayıt başarısız');
+                    // küçük bir toast
+                    showSavedToast();
+                } catch (err) {
+                    console.error(err);
+                    alert('Sıra kaydedilemedi. Sayfayı yenileyip tekrar deneyin.');
+                }
+            }
+
+            // mini toast
+            function showSavedToast() {
+                const el = document.createElement('div');
+                el.className = 'position-fixed bottom-0 end-0 p-3';
+                el.style.zIndex = 1080;
+                el.innerHTML = `
+        <div class="toast align-items-center text-bg-dark border-0 show" role="status" aria-live="polite" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body"><i class="bi bi-check-circle text-warning me-1"></i>Sıra güncellendi.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>`;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 2000);
+            }
+        })();
+
+        function showFaqHtml(btn) {
+            try {
+                const title = btn.getAttribute('data-title') || 'Cevap';
+                const b64 = btn.getAttribute('data-html64') || '';
+                const html = atob(b64);
+                document.getElementById('faqModalLabel').textContent = title;
+                document.getElementById('faqModalBody').innerHTML = html || '<span class="text-secondary">Boş içerik</span>';
+                new bootstrap.Modal(document.getElementById('faqModal')).show();
+            } catch (e) {
+                console.error(e);
+                alert('İçerik görüntülenemedi.');
+            }
+        }
+    </script>
+}

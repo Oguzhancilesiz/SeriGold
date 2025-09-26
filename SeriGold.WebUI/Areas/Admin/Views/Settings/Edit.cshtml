@@ -1,0 +1,355 @@
+﻿@* Areas/Admin/Views/Settings/Edit.cshtml *@
+@model SeriGold.WebUI.Areas.Admin.Models.SiteSettingEditVm
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Ayarlar";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a class="text-decoration-none" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Admin</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Ayarlar</li>
+        </ol>
+    </nav>
+}
+
+@if (TempData["ok"] != null)
+{
+    <div class="alert alert-success d-flex align-items-center" role="alert">
+        <i class="bi bi-check-circle me-2"></i>
+        <div>@TempData["ok"]</div>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- Sol: Form -->
+    <div class="col-12 col-xxl-9">
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="row g-4">
+                <!-- Marka -->
+                <section id="sec-brand" class="col-12">
+                    <div class="adm-card p-3 p-lg-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="adm-section-title">Marka</div>
+                            <div class="small text-secondary">Kimlik bilgileri</div>
+                        </div>
+
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Marka Adı</label>
+                                <input asp-for="BrandName" class="form-control" required />
+                                <span class="text-danger" asp-validation-for="BrandName"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Logo (dosya)</label>
+                                <input asp-for="LogoFile" type="file" class="form-control" accept=".png,.jpg,.jpeg,.webp,.svg,image/*" />
+                                <div class="form-text">PNG / JPG / WEBP / SVG önerilir.</div>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label">Logo Url</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                                    <input asp-for="LogoUrl" class="form-control" readonly />
+                                    <button class="btn btn-outline-secondary" type="button" id="copyLogoBtn" title="Kopyala">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" asp-for="RemoveLogo" />
+                                    <label class="form-check-label" for="RemoveLogo">Mevcut logoyu kaldır</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Meta -->
+                <section id="sec-meta" class="col-12">
+                    <div class="adm-card p-3 p-lg-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="adm-section-title">Meta</div>
+                            <div class="small text-secondary">SEO ve tema</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Meta Başlık</label>
+                                <input asp-for="MetaTitle" class="form-control" />
+                                <span class="text-danger" asp-validation-for="MetaTitle"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tema Rengi</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="colorPicker" value="@Model.ThemeColorHex" title="Renk seç" />
+                                    <input asp-for="ThemeColorHex" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Meta Açıklama</label>
+                                <textarea asp-for="MetaDescription" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Header -->
+                <section id="sec-header" class="col-12">
+                    <div class="adm-card p-3 p-lg-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="adm-section-title">Header</div>
+                            <div class="small text-secondary">Gezinim linkleri</div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-3 form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="ShowAbout" />
+                                <label class="form-check-label" for="ShowAbout">Hakkımızda’yı göster</label>
+                            </div>
+                            <div class="col-md-3 form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="ShowContact" />
+                                <label class="form-check-label" for="ShowContact">İletişim’i göster</label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- İletişim -->
+                <section id="sec-contact" class="col-12">
+                    <div class="adm-card p-3 p-lg-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="adm-section-title">İletişim</div>
+                            <div class="small text-secondary">Telefon, e-posta, adres</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Telefon</label>
+                                <input asp-for="Phone" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">E-Posta</label>
+                                <input asp-for="Email" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Harita Url</label>
+                                <input asp-for="MapsUrl" class="form-control" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Adres</label>
+                                <input asp-for="Address" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Hero & Promo -->
+                <section id="sec-hero" class="col-12">
+                    <div class="adm-card p-3 p-lg-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="adm-section-title">Hero & Promo</div>
+                            <div class="small text-secondary">Üst kısım içerikleri</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Hero Başlık</label>
+                                <input asp-for="HeroTitle" class="form-control" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Hero Lead</label>
+                                <textarea asp-for="HeroLead" class="form-control" rows="2"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Promo Başlık</label>
+                                <input asp-for="PromoTitle" class="form-control" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Promo Metni</label>
+                                <textarea asp-for="PromoText" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Döviz defaultları -->
+                <section id="sec-fx" class="col-12">
+                    <div class="adm-card p-3 p-lg-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="adm-section-title">Döviz Varsayılanları</div>
+                            <div class="small text-secondary">Çevirici ve sekme</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Default Converter Pair</label>
+                                <input asp-for="DefaultConverterPair" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Default FX Tab</label>
+                                <input asp-for="DefaultFxTab" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Footer -->
+                <section id="sec-footer" class="col-12">
+                    <div class="adm-card p-3 p-lg-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="adm-section-title">Footer Notu</div>
+                            <div class="small text-secondary">HTML destekli</div>
+                        </div>
+                        <textarea asp-for="FooterNoteHtml" class="form-control" rows="3"></textarea>
+                    </div>
+                </section>
+
+                <!-- Yasal -->
+                <section id="sec-legal" class="col-12">
+                    <div class="adm-card p-3 p-lg-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="adm-section-title">Yasal Metinler</div>
+                            <div class="small text-secondary">HTML içerikler</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Gizlilik (PrivacyHtml)</label>
+                                <textarea asp-for="PrivacyHtml" class="form-control" rows="4"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">KVKK (KvkkHtml)</label>
+                                <textarea asp-for="KvkkHtml" class="form-control" rows="4"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Aydınlatma (AydinlatmaHtml)</label>
+                                <textarea asp-for="AydinlatmaHtml" class="form-control" rows="4"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Çerez (CookieHtml)</label>
+                                <textarea asp-for="CookieHtml" class="form-control" rows="4"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Aksiyonlar -->
+                <div class="col-12">
+                    <div class="d-flex gap-2 justify-content-end sticky-actions">
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Panele Dön
+                        </a>
+                        <button class="btn btn-warning">
+                            <i class="bi bi-save me-1"></i> Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sağ: Önizleme + Scrollspy -->
+    <div class="col-12 col-xxl-3">
+        <div class="sticky-actions">
+            <div class="adm-card mb-3">
+                <div class="card-header"><strong>Logo Önizleme</strong></div>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height:220px">
+                    @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+                    {
+                        <img id="logoPreview" src="@Model.LogoUrl" alt="Logo" class="img-fluid p-2" style="max-height:180px" />
+                    }
+                    else
+                    {
+                        <img id="logoPreview" src="" alt="Logo" class="img-fluid p-2 d-none" style="max-height:180px" />
+                        <div id="logoEmpty" class="text-secondary text-center">
+                            <i class="bi bi-image fs-1 d-block mb-2"></i>
+                            Logo yüklenmemiş.
+                        </div>
+                    }
+                </div>
+                <div class="card-footer small text-secondary">
+                    Kaynak: <code id="logoSrcText">@((Model.LogoUrl ?? "—"))</code>
+                </div>
+            </div>
+
+            <nav id="secNav" class="adm-card p-3 scrollspy-nav">
+                <div class="adm-section-title mb-2">Bölümler</div>
+                <div class="nav nav-pills flex-column gap-1">
+                    <a class="nav-link" href="#sec-brand">Marka</a>
+                    <a class="nav-link" href="#sec-meta">Meta</a>
+                    <a class="nav-link" href="#sec-header">Header</a>
+                    <a class="nav-link" href="#sec-contact">İletişim</a>
+                    <a class="nav-link" href="#sec-hero">Hero & Promo</a>
+                    <a class="nav-link" href="#sec-fx">Döviz</a>
+                    <a class="nav-link" href="#sec-footer">Footer</a>
+                    <a class="nav-link" href="#sec-legal">Yasal</a>
+                </div>
+            </nav>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Scrollspy
+        const secNav = document.getElementById('secNav');
+        if (secNav) {
+            new bootstrap.ScrollSpy(document.body, {
+                target: '#secNav',
+                offset: 110
+            });
+        }
+
+        // Logo kopyala
+        const copyBtn = document.getElementById('copyLogoBtn');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+                const input = document.getElementById('LogoUrl');
+                if (input && input.value) {
+                    navigator.clipboard.writeText(input.value).then(() => {
+                        copyBtn.innerHTML = '<i class="bi bi-clipboard-check"></i>';
+                        setTimeout(() => copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>', 1200);
+                    });
+                }
+            });
+        }
+
+        // Logo önizleme
+        const fileInput = document.getElementById('LogoFile');
+        const img = document.getElementById('logoPreview');
+        const empty = document.getElementById('logoEmpty');
+        const srcText = document.getElementById('logoSrcText');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                const url = URL.createObjectURL(f);
+                if (img) {
+                    img.src = url;
+                    img.classList.remove('d-none');
+                }
+                if (empty) empty.classList.add('d-none');
+                if (srcText) srcText.textContent = '(yüklenecek dosya)';
+            });
+        }
+
+        // Tema rengi: color input <-> hex input senkron
+        const picker = document.getElementById('colorPicker');
+        const hex = document.getElementById('ThemeColorHex');
+        if (picker && hex) {
+            picker.addEventListener('input', () => { hex.value = picker.value; });
+            hex.addEventListener('input', () => {
+                const v = hex.value?.trim();
+                if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) picker.value = v;
+            });
+        }
+    </script>
+}

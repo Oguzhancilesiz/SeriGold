@@ -1,0 +1,114 @@
+﻿@model SeriGold.DTO.ServiceItemUpdateDto
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Hizmet Düzenle";
+}
+
+@section Breadcrumb {
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a class="text-decoration-none" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Admin</a></li>
+            <li class="breadcrumb-item"><a class="text-decoration-none" asp-action="Index">Hizmetler</a></li>
+            <li class="breadcrumb-item active">Düzenle</li>
+        </ol>
+    </nav>
+}
+
+<div class="card card-glow">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-pencil-square text-warning"></i><strong>Hizmet Düzenle</strong>
+    </div>
+    <div class="card-body">
+        <form method="post" class="row g-3" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="col-md-2">
+                <label asp-for="DisplayOrder" class="form-label">Sıra</label>
+                <input asp-for="DisplayOrder" class="form-control" />
+                <span class="text-danger small" asp-validation-for="DisplayOrder"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="Title" class="form-label">Başlık</label>
+                <input asp-for="Title" class="form-control" />
+                <span class="text-danger small" asp-validation-for="Title"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="Icon" class="form-label">Ikon (Bootstrap Icons sınıfı)</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i id="icoPrev" class="@Model.Icon"></i></span>
+                    <input asp-for="Icon" class="form-control" placeholder="bi bi-activity" />
+                </div>
+                <div class="form-text">
+                    <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener">Bootstrap Icons</a> üzerindeki sınıfı girin.
+                </div>
+                <span class="text-danger small" asp-validation-for="Icon"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Description" class="form-label">Açıklama (HTML destekli)</label>
+
+                <ul class="nav nav-pills mb-2" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-edit" data-bs-toggle="pill" data-bs-target="#pane-edit" type="button" role="tab">Düzenle</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-prev" data-bs-toggle="pill" data-bs-target="#pane-prev" type="button" role="tab">Önizleme</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content border rounded">
+                    <div class="tab-pane fade show active p-2" id="pane-edit" role="tabpanel" aria-labelledby="tab-edit">
+                        <textarea asp-for="Description" class="form-control" rows="6" id="descEditor"></textarea>
+                        <span class="text-danger small" asp-validation-for="Description"></span>
+                    </div>
+                    <div class="tab-pane fade p-3 bg-body-tertiary" id="pane-prev" role="tabpanel" aria-labelledby="tab-prev">
+                        <div id="descPreview" class="prose"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 form-check form-switch">
+                <input class="form-check-input" asp-for="IsActive" />
+                <label class="form-check-label" asp-for="IsActive">Aktif</label>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <a class="btn btn-outline-secondary" asp-action="Index"><i class="bi bi-arrow-left me-1"></i>Geri</a>
+                <button class="btn btn-warning"><i class="bi bi-save me-1"></i>Kaydet</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function(){
+            const inp = document.getElementById('Icon') || document.querySelector('input[name="Icon"]');
+            const prev = document.getElementById('icoPrev');
+            inp?.addEventListener('input', function(){
+                prev.className = this.value || 'bi bi-question-circle';
+            });
+        })();
+    </script>
+    <script>
+        (function(){
+            const inp = document.getElementById('Icon') || document.querySelector('input[name="Icon"]');
+            const prevIcon = document.getElementById('icoPrev');
+            inp?.addEventListener('input', function(){
+                prevIcon.className = this.value || 'bi bi-question-circle';
+            });
+
+            // HTML Önizleme
+            const ed = document.getElementById('descEditor');
+            const pv = document.getElementById('descPreview');
+            function render(){
+                pv.innerHTML = ed.value || '<span class="text-secondary">(Önizleme boş)</span>';
+            }
+            ed?.addEventListener('input', render);
+            document.getElementById('tab-prev')?.addEventListener('shown.bs.tab', render);
+            // Edit sayfası açılışında bir kez yükle
+            render();
+        })();
+    </script>
+}

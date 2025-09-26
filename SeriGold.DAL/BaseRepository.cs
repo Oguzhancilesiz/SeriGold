@@ -122,6 +122,10 @@ namespace SeriGold.DAL
             return await _table.ToListAsync();
         }
 
+        public async Task<List<T>> GetAllAsync()
+        {
+            return await _table.ToListAsync();
+        }
         public async Task<IQueryable<T>> GetAllActives()
         {
             return _table.Where(x => x.Status == Core.Enums.Status.Active);

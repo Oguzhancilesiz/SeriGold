@@ -1,7 +1,36 @@
-﻿@{
-    ViewData["Title"] = "Seri Döviz — Güvenilir Döviz & Sarrafiye";
-    ViewData["MetaDescription"] = "Seri Döviz ile canlı döviz kurları, altın ve sarrafiye fiyatları. Hakkımızda ve iletişim bilgileri tek sayfada.";
+﻿@* Views/Home/Index.cshtml *@
+@using SeriGold.Services.Abstracts
+@inject IFaqService FaqSvc
+@inject IServiceItemService ServiceSvc
+@inject ISiteSettingService SiteSettingsSvc
+
+@{
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Ayarlar ve veriler
+    var s = await SiteSettingsSvc.GetAsync();
+    var faqs = await FaqSvc.GetAll();
+    var services = await ServiceSvc.GetAll();
+
+    // Meta / Tema rengi (fallback'lı)
+    ViewData["Title"] = string.IsNullOrWhiteSpace(s.MetaTitle)
+        ? "Seri Döviz — Güvenilir Döviz & Sarrafiye"
+        : s.MetaTitle;
+
+    ViewData["MetaDescription"] = string.IsNullOrWhiteSpace(s.MetaDescription)
+        ? "Seri Döviz ile canlı döviz kurları, altın ve sarrafiye fiyatları. Hakkımızda ve iletişim bilgileri tek sayfada."
+        : s.MetaDescription;
+
+    ViewData["ThemeColor"] = string.IsNullOrWhiteSpace(s.ThemeColorHex) ? "#0b1621" : s.ThemeColorHex;
+
+    // Listeler: sadece aktif ve sıralı
+    var faqList = faqs.Where(x => x.IsActive).OrderBy(x => x.DisplayOrder).ToList();
+    var svcList = services.Where(x => x.IsActive).OrderBy(x => x.DisplayOrder).ToList();
+
+    // Google Maps embed URL (varsa query'ye output=embed ekler)
+    var embedUrl = s.MapsUrl?.Contains("output=embed") == true
+        ? s.MapsUrl
+        : $"{s.MapsUrl}{(string.IsNullOrEmpty(s.MapsUrl) ? "" : (s.MapsUrl.Contains("?") ? "&" : "?"))}output=embed";
 }
 
 @section Styles {
@@ -102,20 +131,17 @@
 <section id="home" class="sg-hero py-5 sg-anchor">
     <div class="container-xxl">
         <div class="row align-items-center g-4">
-            <!-- Öne çıkan pariteler -->
-            <!-- Tek Liste — Canlı Kurlar -->
+            <!-- Canlı Kurlar -->
             <div class="col-12 col-lg-5">
                 <div id="homeList" class="sg-card p-3 gold-border reveal tilt" data-glow>
                     <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
                         <div class="h5 m-0">Canlı Kurlar</div>
                         <div class="d-flex align-items-center gap-2 sg-input flex-wrap flex-grow-1" style="min-width:260px">
-                            <input v-model.trim="q" class="form-control form-control-sm flex-grow-1"
-                                   placeholder="Ara: USD/TRY, ÇEYREK…" />
+                            <input v-model.trim="q" class="form-control form-control-sm flex-grow-1" placeholder="Ara: USD/TRY, ÇEYREK…" />
                             <label class="form-check smallmuted mb-0">
                                 <input type="checkbox" v-model="favOnly" class="form-check-input me-1">Sadece ★
                             </label>
-                            <a asp-controller="Home" asp-action="Doviz"
-                               class="small text-gold text-decoration-none ms-auto">Tümü</a>
+                            <a asp-controller="Home" asp-action="Doviz" class="small text-gold text-decoration-none ms-auto">Tümü</a>
                         </div>
                     </div>
 
@@ -126,7 +152,6 @@
                                     <th class="sticky">Ürün / Parite</th>
                                     <th class="text-end sticky">Alış</th>
                                     <th class="text-end sticky">Satış</th>
-                                    <!-- xs’de gizle -->
                                     <th class="text-end sticky d-none d-sm-table-cell">Değişim</th>
                                 </tr>
                             </thead>
@@ -169,11 +194,13 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Hero -->
             <div class="col-12 col-lg-7">
                 <h1 class="display-6 fw-semibold mb-3">
-                    <span class="gold-sheen">Seri Döviz</span> ile güvenilir kurlar ve şeffaf fiyatlar
+                    <span class="gold-sheen">@s.BrandName</span> @s.HeroTitle
                 </h1>
-                <p class="lead text-muted mb-3 section-lead">Canlı piyasaları takip edin, altın ve sarrafiye fiyatlarını karşılaştırın, tek noktadan hızlı iletişim kurun.</p>
+                <p class="lead text-muted mb-3 section-lead">@s.HeroLead</p>
 
                 <div class="badge-row mb-4">
                     <span class="chip"><i class="bi bi-activity"></i><b>Gerçek Zamanlı</b></span>
@@ -187,8 +214,6 @@
                     <a href="#contact" class="btn btn-secondary btn-lg" data-ripple>İletişime Geç</a>
                 </div>
             </div>
-
-         
         </div>
     </div>
 </section>
@@ -200,12 +225,8 @@
             <span class="dot d1"></span><span class="dot d2"></span>
             <div class="row g-4 align-items-center">
                 <div class="col-12 col-lg-8">
-                    <h3 class="mb-2">2020’den bugüne, 2025’te döviz alım–satım ile daha kapsamlı hizmet.</h3>
-                    <p class="text-muted mb-0 section-lead">
-                        Kuyumculukta yüzyıllardır süren <em>“önce güven”</em> kültürünü; şeffaflık, teknoloji ve
-                        güleryüzlü hizmetle birleştiriyoruz. Canlı veri altyapımız ile fiyatları anlık izleyin,
-                        sorularınızı anında yanıtlayalım.
-                    </p>
+                    <h3 class="mb-2">@s.PromoTitle</h3>
+                    <p class="text-muted mb-0 section-lead">@s.PromoText</p>
                 </div>
                 <div class="col-12 col-lg-4">
                     <div class="row g-3 text-center kpi">
@@ -227,33 +248,17 @@
             <p class="text-muted section-lead mx-auto">Sarrafiye, altın ve çoklu döviz ürünlerinde şeffaf ve hızlı işlem deneyimi.</p>
         </div>
         <div class="row g-3">
-            <div class="col-12 col-lg-4">
-                <div class="sg-card p-3 h-100 reveal tilt" data-glow>
-                    <div class="d-flex align-items-center gap-3 mb-2">
-                        <span class="svc-icon"><i class="bi bi-cash-coin"></i></span><h5 class="m-0">Döviz Alım–Satım</h5>
+            @foreach (var sv in svcList)
+            {
+                <div class="col-12 col-lg-4">
+                    <div class="sg-card p-3 h-100 reveal tilt" data-glow>
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <span class="svc-icon"><i class="@sv.Icon"></i></span><h5 class="m-0">@sv.Title</h5>
+                        </div>
+                        <div class="text-muted mb-0">@Html.Raw(sv.Description)</div>
                     </div>
-                    <p class="text-muted mb-3">USD, EUR, GBP ve daha fazlasında rekabetçi kurlar, canlı takip ve hızlı işlem.</p>
-                    <ul class="text-muted small mb-0"><li>Anlık fiyat ekranı</li><li>Şubede hızlı işlem akışı</li><li>Şeffaf spread</li></ul>
                 </div>
-            </div>
-            <div class="col-12 col-lg-4">
-                <div class="sg-card p-3 h-100 reveal tilt" data-glow>
-                    <div class="d-flex align-items-center gap-3 mb-2">
-                        <span class="svc-icon"><i class="bi bi-gem"></i></span><h5 class="m-0">Sarrafiye & Altın</h5>
-                    </div>
-                    <p class="text-muted mb-3">Çeyrek, yarım, tam, Ata ve gremse ürünlerinde güven ve istikrar.</p>
-                    <ul class="text-muted small mb-0"><li>Yeni / Eski ürün fiyatları</li><li>Gram, ons, kg alternatifleri</li><li>Güncel alım–satım tabloları</li></ul>
-                </div>
-            </div>
-            <div class="col-12 col-lg-4">
-                <div class="sg-card p-3 h-100 reveal tilt" data-glow>
-                    <div class="d-flex align-items-center gap-3 mb-2">
-                        <span class="svc-icon"><i class="bi bi-clipboard-check"></i></span><h5 class="m-0">Kurumsal Çözümler</h5>
-                    </div>
-                    <p class="text-muted mb-3">Toptancı ve mağazalara özel fiyatlandırma, hızlı teklif ve güvenilir tedarik.</p>
-                    <ul class="text-muted small mb-0"><li>Özel spread ve hacim desteği</li><li>Hızlı teyit – net süreç</li><li>Raporlama ve takip</li></ul>
-                </div>
-            </div>
+            }
         </div>
     </div>
 </section>
@@ -284,11 +289,16 @@
                         <div class="mb-0"><div class="small text-muted fw-semibold">2025</div><p class="mb-0 text-muted">Portföyümüzü genişleterek <strong>her türlü döviz alım–satımı</strong> ile tek çatı altında daha kapsamlı hizmet sunmaya başladık.</p></div>
                     </div>
                 </div>
-                <ul class="text-muted small mb-0"><li>Güncel fiyatlara hızlı erişim</li><li>Profesyonel, güleryüzlü ekip</li><li>Şeffaf süreç ve açık bilgilendirme</li></ul>
+                <ul class="text-muted small mb-0">
+                    <li>Güncel fiyatlara hızlı erişim</li>
+                    <li>Profesyonel, güleryüzlü ekip</li>
+                    <li>Şeffaf süreç ve açık bilgilendirme</li>
+                </ul>
             </div>
             <div class="col-12 col-lg-5">
                 <div class="text-center reveal tilt">
-                    <img src="~/logo.png" class="img-fluid" style="max-height: 460px" alt="Seri Döviz Logo" />
+                    <img src="@(string.IsNullOrWhiteSpace(s.LogoUrl) ? Url.Content("~/logo.png") : s.LogoUrl)"
+                         class="img-fluid" style="max-height: 460px" alt="@s.BrandName Logo" />
                 </div>
             </div>
         </div>
@@ -298,18 +308,27 @@
 <!-- SSS -->
 <section id="faq" class="py-5 sg-anchor">
     <div class="container-xxl">
-        <div class="text-center mb-4"><h2 class="mb-2">Sık Sorulan Sorular</h2><p class="text-muted section-lead mx-auto">Kafanıza takılanları hızlıca yanıtlayalım.</p></div>
+        <div class="text-center mb-4">
+            <h2 class="mb-2">Sık Sorulan Sorular</h2>
+            <p class="text-muted section-lead mx-auto">Kafanıza takılanları hızlıca yanıtlayalım.</p>
+        </div>
         <div class="accordion reveal tilt" id="faqAcc">
-            <div class="accordion-item"><h2 class="accordion-header" id="q1"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#a1" aria-expanded="true" aria-controls="a1">Kurlar ne sıklıkla güncelleniyor?</button></h2><div id="a1" class="accordion-collapse collapse show" aria-labelledby="q1" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Kurlar anlık olarak güncellenir; “Kurlar” sayfasındaki tablo ve ana sayfadaki öne çıkan kartlar otomatik tazelenir.</div></div></div>
-            <div class="accordion-item"><h2 class="accordion-header" id="q2"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a2" aria-expanded="false" aria-controls="a2">Sarrafiye ürünlerinde yeni/eski ayrımı yapıyor musunuz?</button></h2><div id="a2" class="accordion-collapse collapse" aria-labelledby="q2" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Evet. Çeyrek, yarım, tam, Ata ve gremse için <strong>yeni/eski</strong> ürün fiyatlarını ayrı ayrı paylaşıyoruz.</div></div></div>
-            <div class="accordion-item"><h2 class="accordion-header" id="q3"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a3" aria-expanded="false" aria-controls="a3">Kurumsal müşterilere özel teklif veriyor musunuz?</button></h2><div id="a3" class="accordion-collapse collapse" aria-labelledby="q3" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Hacim ve ihtiyaca göre <strong>özel spread</strong>, hızlı teyit ve raporlama desteği sunuyoruz.</div></div></div>
-            <div class="accordion-item"><h2 class="accordion-header" id="q4"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a4" aria-expanded="false" aria-controls="a4">İletişime nasıl geçebilirim?</button></h2><div id="a4" class="accordion-collapse collapse" aria-labelledby="q4" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Aşağıdaki formu doldurabilir, haritadaki konumumuzdan ziyaret edebilir veya telefon/e-posta ile ulaşabilirsiniz.</div></div></div>
-            <div class="accordion-item"><h2 class="accordion-header" id="q5"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a5" aria-expanded="false" aria-controls="a5">Fiyatlar yatırım tavsiyesi midir?</button></h2><div id="a5" class="accordion-collapse collapse" aria-labelledby="q5" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Hayır. Paylaşılan fiyatlar bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.</div></div></div>
-            <div class="accordion-item"><h2 class="accordion-header" id="q6"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a6" aria-expanded="false" aria-controls="a6">Spread nasıl hesaplanıyor?</button></h2><div id="a6" class="accordion-collapse collapse" aria-labelledby="q6" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Spread, alış ve satış fiyatı arasındaki farktır. Ürün türüne, piyasa likiditesine ve işlem hacmine göre değişebilir.</div></div></div>
-            <div class="accordion-item"><h2 class="accordion-header" id="q7"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a7" aria-expanded="false" aria-controls="a7">Veri gecikmesi oluyor mu?</button></h2><div id="a7" class="accordion-collapse collapse" aria-labelledby="q7" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Altyapımız canlıdır. Nadir durumlarda hatlar/sağlayıcılar nedeniyle kısa süreli gecikmeler görülebilir.</div></div></div>
-            <div class="accordion-item"><h2 class="accordion-header" id="q8"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a8" aria-expanded="false" aria-controls="a8">Çalışma saatleriniz nedir?</button></h2><div id="a8" class="accordion-collapse collapse" aria-labelledby="q8" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Hafta içi ve Cumartesi mesai saatlerimizde hizmet veriyoruz. Resmî tatillerde değişiklik olabilir.</div></div></div>
-            <div class="accordion-item"><h2 class="accordion-header" id="q9"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a9" aria-expanded="false" aria-controls="a9">Minimum/azami işlem tutarı var mı?</button></h2><div id="a9" class="accordion-collapse collapse" aria-labelledby="q9" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Ürüne ve güncel piyasa koşullarına göre minimum/azami tutarlar değişebilir. Detay için lütfen bizimle iletişime geçin.</div></div></div>
-            <div class="accordion-item"><h2 class="accordion-header" id="q10"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a10" aria-expanded="false" aria-controls="a10">Kur sabitleme veya rezervasyon yapabilir miyim?</button></h2><div id="a10" class="accordion-collapse collapse" aria-labelledby="q10" data-bs-parent="#faqAcc"><div class="accordion-body text-muted">Hızlı teyit ile kısa süreli kur sabitleme/rezervasyon seçenekleri sunabiliyoruz. Koşullar için bizi arayın.</div></div></div>
+            @for (int i = 0; i < faqList.Count; i++)
+            {
+                var it = faqList[i];
+                var qid = $"q{i + 1}";
+                var aid = $"a{i + 1}";
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="@qid">
+                        <button class="accordion-button @(i == 0 ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#@aid" aria-expanded="@(i == 0 ? "true" : "false")" aria-controls="@aid">
+                            @it.Question
+                        </button>
+                    </h2>
+                    <div id="@aid" class="accordion-collapse collapse @(i == 0 ? "show" : "")" aria-labelledby="@qid" data-bs-parent="#faqAcc">
+                        <div class="accordion-body text-muted">@Html.Raw(it.AnswerHtml)</div>
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </section>
@@ -339,19 +358,21 @@
                 <div class="d-flex flex-column align-items-center text-center gap-5 reveal">
                     <div>
                         <div class="d-inline-flex align-items-center justify-content-center rounded-circle border" style="width:64px;height:64px;"><i class="bi bi-telephone text-gold fs-4"></i></div>
-                        <div class="small mt-3"><a href="tel:+905342903605" class="link-underline-opacity-0" aria-label="Telefonu ara">0534 290 36 05</a></div>
+                        <div class="small mt-3">
+                            <a href="tel:@s.Phone" class="link-underline-opacity-0">@s.Phone</a>
+                        </div>
                     </div>
                     <div>
                         <div class="d-inline-flex align-items-center justify-content-center rounded-circle border" style="width:64px;height:64px;"><i class="bi bi-geo-alt text-gold fs-4"></i></div>
                         <div class="small mt-3">
-                            <a href="https://www.google.com/maps/search/?api=1&query=19%20May%C4%B1s%20Mahallesi%20Halaskargazi%20Caddesi%20No%3A%20212%20B%2C%20%C5%9Ei%C5%9Fli%2F%C4%B0stanbul" target="_blank" rel="noopener noreferrer" class="link-underline-opacity-0" aria-label="Haritada aç">
-                                19 Mayıs Mah., Halaskargazi Cd. No:212 B<br />Şişli / İstanbul
+                            <a href="@s.MapsUrl" target="_blank" rel="noopener" class="link-underline-opacity-0">
+                                @Html.Raw((s.Address ?? "").Replace("\n", "<br/>"))
                             </a>
                         </div>
                     </div>
                     <div>
                         <div class="d-inline-flex align-items-center justify-content-center rounded-circle border" style="width:64px;height:64px;"><i class="bi bi-envelope text-gold fs-4"></i></div>
-                        <div class="small mt-3"><a href="mailto:info@seridoviz.com" class="link-underline-opacity-0">info@seridoviz.com</a></div>
+                        <div class="small mt-3"><a href="mailto:@s.Email" class="link-underline-opacity-0">@s.Email</a></div>
                     </div>
                 </div>
             </div>
@@ -376,7 +397,7 @@
                 <div class="sg-card p-3 h-100 reveal">
                     <h6 class="mb-3">Konum Bilgisi</h6>
                     <div class="ratio ratio-4x3 mb-3">
-                        <iframe src="https://www.google.com/maps?q=19%20May%C4%B1s%20Mahallesi%20Halaskargazi%20Caddesi%20No%3A%20212%20B%2C%20%C5%9Ei%C5%9Fli%2F%C4%B0stanbul&z=16&output=embed"
+                        <iframe src="@embedUrl"
                                 width="600" height="450" style="border:0;" allowfullscreen loading="lazy"
                                 referrerpolicy="no-referrer-when-downgrade"></iframe>
                     </div>

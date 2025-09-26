@@ -1,0 +1,70 @@
+﻿@model SeriGold.WebUI.Areas.Admin.Models.LoginVm
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AuthLayout.cshtml";
+    ViewData["Title"] = "Giriş";
+}
+
+<h4 class="mb-1">Admin Giriş</h4>
+<p class="text-secondary mb-4">Yönetim paneline erişmek için hesabınızla oturum açın.</p>
+
+@* doğrulama *@
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger small">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Lütfen formu kontrol edin.
+    </div>
+}
+
+<form method="post" asp-action="Login" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ReturnUrl" />
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label">E-posta</label>
+        <input asp-for="Email" class="form-control form-control-lg" placeholder="admin@admin.com" />
+        <span class="text-danger small" asp-validation-for="Email"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label">Şifre</label>
+        <div class="input-group input-group-lg">
+            <input asp-for="Password" class="form-control" placeholder="REDACTED" id="pwd" />
+            <button type="button" class="btn btn-outline-warning" id="togglePwd" tabindex="-1">
+                <i class="bi bi-eye"></i>
+            </button>
+        </div>
+        <span class="text-danger small" asp-validation-for="Password"></span>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="form-check">
+            <input class="form-check-input" asp-for="RememberMe" id="remember" />
+            <label class="form-check-label" for="remember">Beni hatırla</label>
+        </div>
+        <a class="small text-decoration-none" href="#" tabindex="-1">Şifremi unuttum</a>
+    </div>
+
+    <button class="btn btn-warning btn-lg w-100">Giriş Yap</button>
+
+    <div class="text-secondary small mt-3">
+        Varsayılan kullanıcı: <code>admin@admin.com</code> / <code>REDACTED</code>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function(){
+            const btn = document.getElementById('togglePwd');
+            const inp = document.getElementById('pwd');
+            if(btn && inp){
+                btn.addEventListener('click', function(){
+                    const t = inp.getAttribute('type') === 'password' ? 'text' : 'password';
+                    inp.setAttribute('type', t);
+                    this.innerHTML = t === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+                });
+            }
+        })();
+    </script>
+}

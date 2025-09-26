@@ -7,22 +7,23 @@ using System.Threading.Tasks;
 
 namespace SeriGold.DAL
 {
-    public class UnitOfWork : IUnitOfWork
+    public sealed class UnitOfWork : IUnitOfWork
     {
-        private readonly IEFContext _context;
+        private readonly IEFContext _ctx;
         private readonly Dictionary<Type, object> _repos = new();
-        public UnitOfWork(IEFContext context) { _context = context; }
-        public Task<int> SaveChangesAsync() => _context.SaveChangesAsync(default);
+
+        public UnitOfWork(IEFContext ctx) => _ctx = ctx;
 
         public IBaseRepository<T> Repository<T>() where T : class, IEntity
         {
             var t = typeof(T);
-            if (!_repos.TryGetValue(t, out var repo))
-            {
-                repo = new BaseRepository<T>(_context);
-                _repos.Add(t, repo);
-            }
-            return (IBaseRepository<T>)repo;
+            if (_repos.TryGetValue(t, out var r)) return (IBaseRepository<T>)r;
+
+            var repo = new BaseRepository<T>(_ctx);
+            _repos[t] = repo;
+            return repo;
         }
+
+        public Task<int> SaveChangesAsync() => _ctx.SaveChangesAsync(default);
     }
 }

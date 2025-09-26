@@ -1,0 +1,100 @@
+﻿@using SeriGold.Services.Abstracts
+@inject ISiteSettingService SiteSvc
+@{
+    var s = await SiteSvc.GetAsync();
+    Layout = null;
+}
+<!doctype html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>@(ViewData["Title"] != null ? $"Admin – {ViewData["Title"]}" : "Admin")</title>
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <style>
+        :root {
+            --bg1: #0b0f13;
+            --bg2: #111927;
+            --glow: #ffc107;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(1200px 800px at 20% 10%, rgba(255,193,7,.15), transparent 60%), radial-gradient(900px 700px at 80% 90%, rgba(255,193,7,.08), transparent 55%), linear-gradient(180deg, var(--bg1), var(--bg2));
+        }
+
+        .auth-wrap {
+            min-height: 100vh;
+        }
+
+        .auth-card {
+            border: 1px solid rgba(255,255,255,.06);
+            background: rgba(15,20,26,.65);
+            backdrop-filter: blur(6px);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.45);
+        }
+
+        .brand-mark {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            font-weight: 700;
+            letter-spacing: .2px;
+        }
+
+            .brand-mark img {
+                height: 34px;
+                width: auto;
+            }
+
+        .glow {
+            box-shadow: 0 0 0 .15rem rgba(255,193,7,.12) inset;
+            border-color: rgba(255,193,7,.35) !important;
+        }
+
+        .form-control, .form-check-input {
+            border-radius: 12px;
+        }
+
+        .btn-auth {
+            border-radius: 12px;
+        }
+
+        .muted-link {
+            color: #a6b0c0;
+            text-decoration: none;
+        }
+
+            .muted-link:hover {
+                color: #fff;
+            }
+    </style>
+    @RenderSection("Head", required: false)
+</head>
+<body>
+    <div class="container auth-wrap d-flex align-items-center justify-content-center py-5">
+        <div class="w-100" style="max-width:440px">
+            <div class="text-center mb-4">
+                <div class="brand-mark justify-content-center">
+                    <img src="@(!string.IsNullOrWhiteSpace(s.LogoUrl) ? s.LogoUrl : Url.Content("~/logo.png"))" alt="Logo" />
+                    <span>@(string.IsNullOrWhiteSpace(s.BrandName) ? "Seri Döviz" : s.BrandName) • Admin</span>
+                </div>
+            </div>
+            <div class="card auth-card glow">
+                <div class="card-body p-4 p-lg-5">
+                    @RenderBody()
+                </div>
+            </div>
+            <div class="text-center mt-3 small">
+                <a class="muted-link" asp-area="" asp-controller="Home" asp-action="Index" target="_blank" rel="noopener">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Siteyi Aç
+                </a>
+            </div>
+        </div>
+    </div>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

@@ -14,6 +14,7 @@ namespace SeriGold.Core.Abstracts
         Task<TEntity> GetById(Guid id, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object>> include = null,
             Expression<Func<TEntity, bool>> predicate = null, bool ignoreQueryFilter = false);
         Task<List<TEntity>> GetAll();
+        Task<List<TEntity>> GetAllAsync();
         Task<IQueryable<TEntity>> GetBy(Expression<Func<TEntity, bool>> exp);
         Task<IQueryable<TEntity>> GetAllActives();
         Task AddAsync(TEntity item);

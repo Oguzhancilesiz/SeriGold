@@ -1,6 +1,10 @@
-﻿@{
+﻿@using SeriGold.Services.Abstracts
+@inject ISiteSettingService SiteSettingsSvc
+@{
     ViewData["Title"] = "Döviz Kurları";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var s = await SiteSettingsSvc.GetAsync();
 }
 
 @section Styles {

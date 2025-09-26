@@ -1,0 +1,44 @@
+﻿@* Areas/Admin/Views/Shared/_AdminNav.cshtml *@
+@{
+    string currentController = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLowerInvariant();
+    string currentAction = (ViewContext.RouteData.Values["action"]?.ToString() ?? "").ToLowerInvariant();
+
+    Func<string, string, string> isActive = (ctrl, act) =>
+    {
+        var c = ctrl.ToLowerInvariant();
+        var a = (act ?? "").ToLowerInvariant();
+        bool matchCtrl = currentController == c;
+        bool matchAct = string.IsNullOrWhiteSpace(a) || currentAction == a;
+        return (matchCtrl && matchAct) ? "active" : "";
+    };
+}
+@* Areas/Admin/Views/Shared/_AdminNav.cshtml *@
+@{
+    string ctrl = (ViewContext.RouteData.Values["controller"]?.ToString() ?? "").ToLowerInvariant();
+}
+<div class="list-group list-group-flush">
+    <a class="list-group-item list-group-item-action @(ctrl == "dashboard" ? "active" : "")"
+       asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+        <i class="bi bi-house-door me-2"></i> Dashboard
+    </a>
+    <a class="list-group-item list-group-item-action @(ctrl == "settings" ? "active" : "")"
+       asp-area="Admin" asp-controller="Settings" asp-action="Edit">
+        <i class="bi bi-gear me-2"></i> Ayarlar
+    </a>
+    <a class="list-group-item list-group-item-action @(ctrl == "services" ? "active" : "")"
+       asp-area="Admin" asp-controller="Services" asp-action="Index">
+        <i class="bi bi-grid-3x3-gap me-2"></i> Hizmetler
+    </a>
+    <a class="list-group-item list-group-item-action @(ctrl == "faq" ? "active" : "")"
+       asp-area="Admin" asp-controller="Faq" asp-action="Index">
+        <i class="bi bi-question-circle me-2"></i> SSS
+    </a>
+</div>
+
+<div class="mt-4 small text-secondary">
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-shield-lock"></i>
+        <span>Rol: Admin</span>
+    </div>
+</div>
+
